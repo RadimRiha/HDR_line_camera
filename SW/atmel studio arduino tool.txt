@@ -1,0 +1,7 @@
+arduino as programmer
+C:\Users\Radim\Desktop\gitRepo\HDR_line_camera\SW\avrdude_6.3\avrdude.exe
+arguments -C"C:\Users\Radim\Desktop\gitRepo\HDR_line_camera\SW\avrdude_6.3\avrdude.conf" -v -pattiny24 -cstk500v1 -PCOM4 -b19200 -Uflash:w:"$(ProjectDir)Debug\$(TargetName).hex":i
+
+straight to arduino
+C:\Users\Radim\Desktop\gitRepo\HDR_line_camera\SW\avrdude_6.3\avrdude.exe
+arguments -C"C:\Users\Radim\Desktop\gitRepo\HDR_line_camera\SW\avrdude_6.3\avrdude.conf" -v -patmega328p -carduino -PCOM3 -b115200 -Uflash:w:"$(ProjectDir)Debug\$(TargetName).hex":i
