@@ -1,0 +1,2 @@
+avrdude -C"C:\Users\Radim\Desktop\gitRepo\HDR_line_camera\SW\avrdude_6.3\avrdude.conf" -v -p atmega328p -c arduino -P COM4 -b 115200 -Uflash:w:"$(ProjectDir)Debug\$(TargetName).hex":i
+avrdude -C"C:\Users\Radim\Desktop\gitRepo\HDR_line_camera\SW\avrdude_6.3\avrdude.conf" -v -p attiny24 -c stk500v1 -P COM4 -b 19200 -Uflash:w:"$(ProjectDir)Debug\$(TargetName).hex":i
