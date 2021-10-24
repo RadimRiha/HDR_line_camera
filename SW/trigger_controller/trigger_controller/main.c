@@ -3,10 +3,7 @@
 #include <avr/interrupt.h>
 
 #define MAX_HDR_EXP_TIMES 5		//maximum number of HDR exposure times
-
-volatile uint8_t pulseTrainComplete = 1;
-volatile uint8_t hdrPulseCount = 0;
-volatile uint8_t cameraReady = 0;
+#define USART_BUFFER_LENGTH 20
 
 enum triggerTypes{FREE, TIMED, HW, ENCODER};
 enum hwTriggerPolarities{RISING, FALLING, HIGH, LOW};
@@ -38,14 +35,35 @@ struct acquisitionSettings acqSettings = {
 	.hwTriggerPolarity = RISING
 };
 
-volatile uint8_t precomputedOCR0A[MAX_HDR_EXP_TIMES+1];
-volatile uint8_t precomputedTCCR0B[MAX_HDR_EXP_TIMES+1];
+uint8_t precomputedOCR0A[MAX_HDR_EXP_TIMES+1];
+uint8_t precomputedTCCR0B[MAX_HDR_EXP_TIMES+1];
+
+volatile uint8_t pulseTrainComplete = 1;
+volatile uint8_t hdrPulseCount = 0;
+volatile uint8_t cameraReady = 0;
+
+struct USART {
+	volatile uint8_t receiveComplete;
+	volatile uint8_t transmitComplete;
+	volatile char inBuffer[USART_BUFFER_LENGTH];
+	volatile uint8_t inBufferIndex;
+	volatile char *outBuffer;
+	volatile uint8_t outBufferIndex;
+};
+
+struct USART USART0 = {
+	.receiveComplete = 0,
+	.transmitComplete = 1,
+	.inBufferIndex = 0,
+	.outBufferIndex = 0,
+};
 
 void cameraReadyInterrupt();
 void cameraNotReadyInterrupt();
 void startTriggerTimer();
 void startNewLineTrigger();
 void checkCameraReadyStatus();
+void usartSend();
 
 ISR(TIMER0_COMPA_vect) {
 	TCCR0B = 0;		//stop the timer
@@ -64,6 +82,41 @@ ISR(INT0_vect) {			//line out 1 rising/falling edge
 	else {					//falling edge or low level of LINE OUT 1 (line trigger wait)
 		cameraReady = 0;
 	}
+}
+
+ISR(USART_RX_vect) {
+	if(USART0.receiveComplete) return;
+	char receiveChar = UDR0;
+	USART0.inBuffer[USART0.inBufferIndex] = receiveChar;
+	if((USART0.inBufferIndex >= USART_BUFFER_LENGTH-1) || (receiveChar == '\n')) {
+		USART0.receiveComplete = 1;
+		USART0.inBufferIndex = 0;
+	}
+	else USART0.inBufferIndex++;
+}
+
+ISR(USART_TX_vect) {
+	if((USART0.outBufferIndex >= USART_BUFFER_LENGTH-1) || (USART0.outBuffer[USART0.outBufferIndex] == '\n')) {
+		USART0.transmitComplete = 1;
+		USART0.outBufferIndex = 0;
+		return;
+	}
+	else USART0.outBufferIndex++;
+	UDR0 = USART0.outBuffer[USART0.outBufferIndex];	//queue next character
+}
+
+void processUsart() {
+	if(!USART0.receiveComplete) return;	//only process if message is complete
+	usartSend(USART0.inBuffer);
+	
+	USART0.receiveComplete = 0;	//ack message
+}
+
+void usartSend(char *message) {
+	if(!USART0.transmitComplete) return;
+	USART0.transmitComplete = 0;
+	USART0.outBuffer = message;
+	UDR0 = USART0.outBuffer[0];
 }
 
 void checkCameraReadyStatus() {
@@ -138,10 +191,21 @@ int main(void) {
 	EICRA = (1<<ISC00);		//INT0 on logical change
 	EIMSK = (1<<INT0);		//enable INT0
 	
+	//setup UART
+	UCSR0B = (1<<RXCIE0) | (1<<TXCIE0) | (1<<RXEN0) | (1<<TXEN0);	//enable transmitter, receiver and corresponding interrupts
+	UCSR0C = (1<<UCSZ01) | (1<<UCSZ00);	//8-bit character size
+	UBRR0 = F_CPU/(16UL*9600) - 1;		//9600 baud
+	
 	precomputeTriggerTimerParameters();
 	sei();
 	
+	DDRD |= (1<<7);		//DEBUG
+	
+	//char msg[] = "Dominik smrdi\n";
+	//usartSend(msg);
+	
     while(1) {
+		processUsart();
 		checkCameraReadyStatus();
     }
 }
