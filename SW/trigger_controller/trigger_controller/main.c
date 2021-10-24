@@ -29,17 +29,17 @@ struct acquisitionSettings acqSettings = {
 	.trigger = FREE,
 	.triggerWidthExposure = 1,
 	.noRgbLight = 0,
-	.noHdrExposureTime = 200,
-	.hdrExposureTime[0] = 100,
-	.hdrExposureTime[1] = 200,
-	.hdrExposureTime[2] = 2000,
-	.hdrExposureTime[3] = 5000,
-	.hdrExposureTime[4] = 0xFF,
+	.noHdrExposureTime = 5,
+	.hdrExposureTime[0] = 200,
+	.hdrExposureTime[1] = 400,
+	.hdrExposureTime[2] = 800,
+	.hdrExposureTime[3] = 0xFFFF,
 	.triggerPeriod = 1000,
 	.hwTriggerPolarity = RISING
 };
 
-//volatile uint8_t precomputedExpTimes[MAX_HDR_EXP_TIMES] = {200, 50, 70, 64};
+volatile uint8_t precomputedOCR0A[MAX_HDR_EXP_TIMES+1];
+volatile uint8_t precomputedTCCR0B[MAX_HDR_EXP_TIMES+1];
 
 void cameraReadyInterrupt();
 void cameraNotReadyInterrupt();
@@ -50,11 +50,20 @@ void checkCameraReadyStatus();
 ISR(TIMER0_COMPA_vect) {
 	TCCR0B = 0;		//stop the timer
 	if(!acqSettings.hdrEnabled) pulseTrainComplete = 1;
-	else if(acqSettings.hdrExposureTime[hdrPulseCount] == 0xFF) pulseTrainComplete = 1;
+	else if(acqSettings.hdrExposureTime[hdrPulseCount] == 0xFFFF) pulseTrainComplete = 1;
 }
 
-ISR(INT0_vect) {	//line out 1 rising/falling edge
-	checkCameraReadyStatus();
+ISR(INT0_vect) {			//line out 1 rising/falling edge
+	if(PIND & (1<<2)) {		//rising edge or high level of LINE OUT 1 (line trigger wait)
+		if(!cameraReady) {	//rising edge
+			cameraReady = 1;
+			if(!pulseTrainComplete) startTriggerTimer();				//another HDR trigger
+			else if(acqSettings.trigger == FREE) startNewLineTrigger();	//FREE run mode triggering
+		}
+	}
+	else {					//falling edge or low level of LINE OUT 1 (line trigger wait)
+		cameraReady = 0;
+	}
 }
 
 void checkCameraReadyStatus() {
@@ -70,32 +79,40 @@ void checkCameraReadyStatus() {
 	}
 }
 
+void precomputeTriggerTimerParameters() {
+	for(uint8_t i = 0; i < MAX_HDR_EXP_TIMES+1; i++) {
+		uint16_t expTime;
+		if(i != MAX_HDR_EXP_TIMES) expTime = acqSettings.hdrExposureTime[i];
+		else expTime = acqSettings.noHdrExposureTime;
+		
+		if(expTime < 125) {									//exp time < 125
+			precomputedTCCR0B[i] = (1<<CS01);				//8 prescaler, 0.5us period
+			precomputedOCR0A[i] = expTime*2;
+		}else if(expTime < 1000) {							//125 < exp time < 1000
+			precomputedTCCR0B[i] = (1<<CS01) | (1<<CS00);	//64 prescaler, 4us period
+			precomputedOCR0A[i] = expTime/4;
+		}else if(expTime < 4000) {							//1000 < exp time < 4000
+			precomputedTCCR0B[i] = (1<<CS02);				//256 prescaler, 16us period
+			precomputedOCR0A[i] = expTime/16;
+		}else {												//4000 < exp time < 10000
+			precomputedTCCR0B[i] = (1<<CS02) | (1<<CS00);	//1024 prescaler, 64us period
+			precomputedOCR0A[i] = expTime/64;
+		}
+	}
+}
+
 void startTriggerTimer() {
-	uint16_t expTimeToSet;
 	uint8_t TCCR0B_val;
-	
 	if(acqSettings.hdrEnabled) {
-		expTimeToSet = acqSettings.hdrExposureTime[hdrPulseCount];
-		//OCR0A = precomputedExpTimes[hdrPulseCount];
+		OCR0A = precomputedOCR0A[hdrPulseCount];
+		TCCR0B_val = precomputedTCCR0B[hdrPulseCount];
 		hdrPulseCount++;
 	}
-	else expTimeToSet = acqSettings.noHdrExposureTime;
-	
-	if(expTimeToSet < 125) {				//exp time < 125
-		TCCR0B_val = (1<<CS01);				//8 prescaler, 0.5us period
-		OCR0A = expTimeToSet*2;
-	}else if(expTimeToSet < 1000) {			//125 < exp time < 1000
-		TCCR0B_val = (1<<CS01) | (1<<CS00);	//64 prescaler, 4us period
-		OCR0A = expTimeToSet/4;
-	}else if(expTimeToSet < 4000) {			//1000 < exp time < 4000
-		TCCR0B_val = (1<<CS02);				//256 prescaler, 16us period
-		OCR0A = expTimeToSet/16;
-	}else {									//4000 < exp time < 10000
-		TCCR0B_val = (1<<CS02) | (1<<CS00);	//1024 prescaler, 64us period
-		OCR0A = expTimeToSet/64;
+	else {
+		OCR0A = precomputedOCR0A[MAX_HDR_EXP_TIMES];
+		TCCR0B_val = precomputedTCCR0B[MAX_HDR_EXP_TIMES];
 	}
 	OCR0B = OCR0A;
-	
 	TCNT0 = 0xFF;
 	TCCR0B = TCCR0B_val;	//start the timer
 }
@@ -120,9 +137,9 @@ int main(void) {
 	//line out 1 interrupt
 	EICRA = (1<<ISC00);		//INT0 on logical change
 	EIMSK = (1<<INT0);		//enable INT0
-	sei();
 	
-	//checkCameraReadyStatus();
+	precomputeTriggerTimerParameters();
+	sei();
 	
     while(1) {
 		checkCameraReadyStatus();
