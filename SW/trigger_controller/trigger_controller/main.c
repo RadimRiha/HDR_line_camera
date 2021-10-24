@@ -15,6 +15,7 @@ struct acquisitionSettings {
 	uint8_t rgbEnabled;				//acquisition with/without RGB light cycling
 	uint8_t hdrEnabled;				//acquisition with/without HDR sequence
 	enum triggerTypes trigger;		//triggering type
+	uint8_t triggerWidthExposure;	//exposure control using trigger width/light duration
 	uint8_t noRgbLight;				//use white light if RGB is disabled
 	uint16_t noHdrExposureTime;		//use this exposure time if HDR is disabled
 	uint16_t hdrExposureTime[MAX_HDR_EXP_TIMES+1];	//HDR exposure times
@@ -24,22 +25,27 @@ struct acquisitionSettings {
 
 struct acquisitionSettings acqSettings = {
 	.rgbEnabled = 0,
-	.hdrEnabled = 0,
+	.hdrEnabled = 1,
 	.trigger = FREE,
+	.triggerWidthExposure = 1,
 	.noRgbLight = 0,
-	.noHdrExposureTime = 800,
-	.hdrExposureTime[0] = 200,
-	.hdrExposureTime[1] = 500,
-	.hdrExposureTime[2] = 800,
-	.hdrExposureTime[3] = 0xFF,
+	.noHdrExposureTime = 200,
+	.hdrExposureTime[0] = 100,
+	.hdrExposureTime[1] = 200,
+	.hdrExposureTime[2] = 2000,
+	.hdrExposureTime[3] = 5000,
+	.hdrExposureTime[4] = 0xFF,
 	.triggerPeriod = 1000,
 	.hwTriggerPolarity = RISING
 };
+
+//volatile uint8_t precomputedExpTimes[MAX_HDR_EXP_TIMES] = {200, 50, 70, 64};
 
 void cameraReadyInterrupt();
 void cameraNotReadyInterrupt();
 void startTriggerTimer();
 void startNewLineTrigger();
+void checkCameraReadyStatus();
 
 ISR(TIMER0_COMPA_vect) {
 	TCCR0B = 0;		//stop the timer
@@ -47,13 +53,19 @@ ISR(TIMER0_COMPA_vect) {
 	else if(acqSettings.hdrExposureTime[hdrPulseCount] == 0xFF) pulseTrainComplete = 1;
 }
 
-ISR(INT0_vect) {
-	if(PIND & (1<<2)) {	//rising edge of LINE OUT 1 (line trigger wait)
-		cameraReady = 1;
-		if(!pulseTrainComplete) startTriggerTimer();				//another HDR trigger
-		else if(acqSettings.trigger == FREE) startNewLineTrigger();	//FREE run mode triggering
+ISR(INT0_vect) {	//line out 1 rising/falling edge
+	checkCameraReadyStatus();
+}
+
+void checkCameraReadyStatus() {
+	if(PIND & (1<<2)) {	//rising edge or high level of LINE OUT 1 (line trigger wait)
+		if(!cameraReady) {	//rising edge
+			cameraReady = 1;
+			if(!pulseTrainComplete) startTriggerTimer();				//another HDR trigger
+			else if(acqSettings.trigger == FREE) startNewLineTrigger();	//FREE run mode triggering
+		}
 	}
-	else {				//falling edge of LINE OUT 1 (line trigger wait)
+	else {				//falling edge or low level of LINE OUT 1 (line trigger wait)
 		cameraReady = 0;
 	}
 }
@@ -64,6 +76,7 @@ void startTriggerTimer() {
 	
 	if(acqSettings.hdrEnabled) {
 		expTimeToSet = acqSettings.hdrExposureTime[hdrPulseCount];
+		//OCR0A = precomputedExpTimes[hdrPulseCount];
 		hdrPulseCount++;
 	}
 	else expTimeToSet = acqSettings.noHdrExposureTime;
@@ -81,6 +94,7 @@ void startTriggerTimer() {
 		TCCR0B_val = (1<<CS02) | (1<<CS00);	//1024 prescaler, 64us period
 		OCR0A = expTimeToSet/64;
 	}
+	OCR0B = OCR0A;
 	
 	TCNT0 = 0xFF;
 	TCCR0B = TCCR0B_val;	//start the timer
@@ -90,22 +104,27 @@ void startNewLineTrigger() {
 	if(!pulseTrainComplete || !cameraReady) return;
 	pulseTrainComplete = 0;
 	hdrPulseCount = 0;
+	if(acqSettings.triggerWidthExposure) TCCR0A = (1<<COM0A1) | (1<<WGM01) | (1<<WGM00);	//trigger output to camera
+	else TCCR0A = (1<<COM0B1) | (1<<WGM01) | (1<<WGM00);	//trigger output to RGB light
 	startTriggerTimer();
 }
 
 int main(void) {
 	cli();
 	//timer 0 setup
-	DDRD |= (1<<6);
-	TCCR0A = (1<<COM0A1) | (1<<WGM01) | (1<<WGM00);	//Clear OC0A on compare match, set OC0A at BOTTOM, Fast PWM
-	TCCR0B = 0;				//stop the timer
-	TIMSK0 = (1<<OCIE0A);	//enable COMPA interrupt
+	DDRD |= (1<<6) | (1<<5);			//OC0A, OC0B output
+	TCCR0A = (1<<WGM01) | (1<<WGM00);	//Fast PWM
+	TCCR0B = 0;							//stop the timer
+	TIMSK0 = (1<<OCIE0A);				//enable COMPA interrupt
 	
-	//external interrupt setup
+	//line out 1 interrupt
 	EICRA = (1<<ISC00);		//INT0 on logical change
 	EIMSK = (1<<INT0);		//enable INT0
 	sei();
 	
+	//checkCameraReadyStatus();
+	
     while(1) {
+		checkCameraReadyStatus();
     }
 }
