@@ -11,6 +11,7 @@ typedef enum triggerTypes {
 	TIMED,
 	HW,
 	ENCODER,
+	NUM_OF_TRIGGER_TYPES,	//LEAVE THIS AS LAST
 } triggerTypes;
 
 typedef enum hwTriggerPolarities {
@@ -18,6 +19,7 @@ typedef enum hwTriggerPolarities {
 	FALLING,
 	HIGH,
 	LOW,
+	NUM_OF_TRIGGER_POLARITIES,	//LEAVE THIS AS LAST
 } hwTriggerPolarities;
 	
 typedef struct acquisitionSettings {
@@ -119,53 +121,84 @@ ISR(USART_TX_vect) {
 	USART0.outBufferIndex++;
 }
 
+uint8_t passFailBool(uint8_t val) {
+	if(val == 0 || val == 1) {
+		usartAddToOutBuffer("OK");
+		return 1;
+	}
+	usartAddToOutBuffer("FAIL");
+	return 0;
+}
+
 void processUsart() {
 	if(!USART0.receiveComplete) return;	//only process if message is complete
 	//message[0] = S(set)/G(get)
 	switch(USART0.inBuffer[0]) {
 		case 'S':
 			//message[1-3] = XYZ - acronym for setting parameter
-			//if(cmpString(USART0.inBuffer+1, "RGE", 3)) {
-			//	acqSettings.rgbEnabled = USART0.inBuffer[4] - '0';
-			//}
+			if(cmpString(USART0.inBuffer+1, "RGE\0")) {
+				acqSettings.rgbEnabled = USART0.inBuffer[4] - '0';
+				if(!passFailBool(acqSettings.rgbEnabled)) acqSettings.rgbEnabled = 0;
+			}else if(cmpString(USART0.inBuffer+1, "HDE\0")) {
+				acqSettings.hdrEnabled = USART0.inBuffer[4] - '0';
+				if(!passFailBool(acqSettings.hdrEnabled)) acqSettings.hdrEnabled = 0;
+			}else if(cmpString(USART0.inBuffer+1, "TRI\0")) {
+				acqSettings.trigger = USART0.inBuffer[4] - '0';
+				if(acqSettings.trigger < NUM_OF_TRIGGER_TYPES) usartAddToOutBuffer("OK");
+				else {
+					usartAddToOutBuffer("FAIL");
+					acqSettings.trigger = FREE;
+				}
+			}else if(cmpString(USART0.inBuffer+1, "TWE\0")) {
+				acqSettings.triggerWidthExposure = USART0.inBuffer[4] - '0';
+				if(!passFailBool(acqSettings.triggerWidthExposure)) acqSettings.triggerWidthExposure = 0;
+			}else if(cmpString(USART0.inBuffer+1, "NRL\0")) {
+				acqSettings.noRgbLight = USART0.inBuffer[4] - '0';
+				if(!passFailBool(acqSettings.noRgbLight)) acqSettings.noRgbLight = 0;
+			}else if(cmpString(USART0.inBuffer+1, "NHE\0")) {
+				//TODO
+			}else if(cmpString(USART0.inBuffer+1, "HET\0")) {
+				//TODO
+			}else if(cmpString(USART0.inBuffer+1, "TPE\0")) {
+				//TODO
+			}else if(cmpString(USART0.inBuffer+1, "TPO\0")) {
+				acqSettings.hwTriggerPolarity = USART0.inBuffer[4] - '0';
+				if(acqSettings.hwTriggerPolarity < NUM_OF_TRIGGER_POLARITIES) usartAddToOutBuffer("OK");
+				else {
+					usartAddToOutBuffer("FAIL");
+					acqSettings.hwTriggerPolarity = RISING;
+				}
+			}else usartAddToOutBuffer("UNRECOGNIZED");
+			usartAddToOutBuffer("\n\0");
+			usartSend();
 		break;
 		case 'G':
 			//message[1-3] = XYZ - acronym for getting parameter
 			if(cmpString(USART0.inBuffer+1, "RGE\0")) {
 				usartAddToOutBuffer(intToString(acqSettings.rgbEnabled));
-				usartAddToOutBuffer("\n\0");
-				usartSend();
 			}else if(cmpString(USART0.inBuffer+1, "HDE\0")) {
 				usartAddToOutBuffer(intToString(acqSettings.hdrEnabled));
-				usartAddToOutBuffer("\n\0");
-				usartSend();
 			}else if(cmpString(USART0.inBuffer+1, "TRI\0")) {
 				usartAddToOutBuffer(intToString(acqSettings.trigger));
-				usartAddToOutBuffer("\n\0");
-				usartSend();
 			}else if(cmpString(USART0.inBuffer+1, "TWE\0")) {
 				usartAddToOutBuffer(intToString(acqSettings.triggerWidthExposure));
-				usartAddToOutBuffer("\n\0");
-				usartSend();
 			}else if(cmpString(USART0.inBuffer+1, "NRL\0")) {
 				usartAddToOutBuffer(intToString(acqSettings.noRgbLight));
-				usartAddToOutBuffer("\n\0");
-				usartSend();
 			}else if(cmpString(USART0.inBuffer+1, "NHE\0")) {
 				usartAddToOutBuffer(intToString(acqSettings.noHdrExposureTime));
-				usartAddToOutBuffer("\n\0");
-				usartSend();
 			}else if(cmpString(USART0.inBuffer+1, "HET\0")) {
-				//TODO
+				for(uint8_t i = 0; i < MAX_HDR_EXP_TIMES; i++) {
+					if(acqSettings.hdrExposureTime[i] == 0xFFFF) break;
+					usartAddToOutBuffer(intToString(acqSettings.hdrExposureTime[i]));
+					if(acqSettings.hdrExposureTime[i+1] != 0xFFFF) usartAddToOutBuffer(",");
+				}
 			}else if(cmpString(USART0.inBuffer+1, "TPE\0")) {
 				usartAddToOutBuffer(intToString(acqSettings.triggerPeriod));
-				usartAddToOutBuffer("\n\0");
-				usartSend();
 			}else if(cmpString(USART0.inBuffer+1, "TPO\0")) {
 				usartAddToOutBuffer(intToString(acqSettings.hwTriggerPolarity));
-				usartAddToOutBuffer("\n\0");
-				usartSend();
-			}
+			} else usartAddToOutBuffer("UNRECOGNIZED");
+			usartAddToOutBuffer("\n\0");
+			usartSend();
 		break;
 		default:
 			usartAddToOutBuffer("UNRECOGNIZED\n\0");
