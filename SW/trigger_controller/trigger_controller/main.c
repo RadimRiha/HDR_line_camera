@@ -1,6 +1,7 @@
 #define F_CPU 16000000UL
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include "string.h"
 
 #define MAX_HDR_EXP_TIMES 5		//maximum number of HDR exposure times
 #define USART_BUFFER_LENGTH 20
@@ -32,7 +33,7 @@ struct acquisitionSettings acqSettings = {
 	.hdrExposureTime[2] = 800,
 	.hdrExposureTime[3] = 0xFFFF,
 	.triggerPeriod = 1000,
-	.hwTriggerPolarity = RISING
+	.hwTriggerPolarity = RISING,
 };
 
 uint8_t precomputedOCR0A[MAX_HDR_EXP_TIMES+1];
@@ -47,7 +48,7 @@ struct USART {
 	volatile uint8_t transmitComplete;
 	volatile char inBuffer[USART_BUFFER_LENGTH];
 	volatile uint8_t inBufferIndex;
-	volatile char *outBuffer;
+	volatile char outBuffer[USART_BUFFER_LENGTH];
 	volatile uint8_t outBufferIndex;
 };
 
@@ -64,6 +65,7 @@ void startTriggerTimer();
 void startNewLineTrigger();
 void checkCameraReadyStatus();
 void usartSend();
+void usartAddToOutBuffer(const char *str);
 
 ISR(TIMER0_COMPA_vect) {
 	TCCR0B = 0;		//stop the timer
@@ -98,7 +100,7 @@ ISR(USART_RX_vect) {
 ISR(USART_TX_vect) {
 	if((USART0.outBufferIndex >= USART_BUFFER_LENGTH-1) || (USART0.outBuffer[USART0.outBufferIndex] == '\n')) {
 		USART0.transmitComplete = 1;
-		USART0.outBufferIndex = 0;
+		USART0.outBufferIndex = 0;	//new message start index reset
 		return;
 	}
 	else USART0.outBufferIndex++;
@@ -107,16 +109,44 @@ ISR(USART_TX_vect) {
 
 void processUsart() {
 	if(!USART0.receiveComplete) return;	//only process if message is complete
-	usartSend(USART0.inBuffer);
-	
+	//message[0] = S(set)/G(get)
+	switch(USART0.inBuffer[0]) {
+		case 'S':
+			//message[1-3] = XYZ - acronym for setting parameter
+			//if(cmpString(USART0.inBuffer+1, "RGE", 3)) {
+			//	acqSettings.rgbEnabled = USART0.inBuffer[4] - '0';
+			//}
+		break;
+		case 'G':
+			//message[1-3] = XYZ - acronym for getting parameter
+			if(cmpString(USART0.inBuffer+1, "RGE\0")) {
+				usartAddToOutBuffer(intToString(acqSettings.rgbEnabled));
+				usartAddToOutBuffer("\n");
+				usartSend();
+			}
+		break;
+		default:
+			usartAddToOutBuffer("UNRECOGNIZED\n\0");
+			usartSend();
+		break;
+	}
 	USART0.receiveComplete = 0;	//ack message
 }
 
-void usartSend(char *message) {
+void usartAddToOutBuffer(const char *str) {
+	for (uint8_t i = 0; i < 0xFF; i++) {
+		if(str[i] == '\0') break;
+		USART0.outBuffer[USART0.outBufferIndex] = str[i];
+		USART0.outBufferIndex++;
+		if(USART0.outBufferIndex >= USART_BUFFER_LENGTH) return;
+	}
+}
+
+void usartSend() {
 	if(!USART0.transmitComplete) return;
 	USART0.transmitComplete = 0;
-	USART0.outBuffer = message;
-	UDR0 = USART0.outBuffer[0];
+	USART0.outBufferIndex = 0;	//send index reset
+	UDR0 = USART0.outBuffer[USART0.outBufferIndex];
 }
 
 void checkCameraReadyStatus() {
