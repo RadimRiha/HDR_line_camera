@@ -6,22 +6,33 @@
 #define MAX_HDR_EXP_TIMES 5		//maximum number of HDR exposure times
 #define USART_BUFFER_LENGTH 20
 
-enum triggerTypes{FREE, TIMED, HW, ENCODER};
-enum hwTriggerPolarities{RISING, FALLING, HIGH, LOW};
+typedef enum triggerTypes {
+	FREE,
+	TIMED,
+	HW,
+	ENCODER,
+} triggerTypes;
+
+typedef enum hwTriggerPolarities {
+	RISING,
+	FALLING,
+	HIGH,
+	LOW,
+} hwTriggerPolarities;
 	
-struct acquisitionSettings {
+typedef struct acquisitionSettings {
 	uint8_t rgbEnabled;				//acquisition with/without RGB light cycling
 	uint8_t hdrEnabled;				//acquisition with/without HDR sequence
-	enum triggerTypes trigger;		//triggering type
+	triggerTypes trigger;		//triggering type
 	uint8_t triggerWidthExposure;	//exposure control using trigger width/light duration
 	uint8_t noRgbLight;				//use white light if RGB is disabled
 	uint16_t noHdrExposureTime;		//use this exposure time if HDR is disabled
 	uint16_t hdrExposureTime[MAX_HDR_EXP_TIMES+1];	//HDR exposure times
 	uint16_t triggerPeriod;			//period [us] of the TIMED trigger
-	enum hwTriggerPolarities hwTriggerPolarity;
-};
+	hwTriggerPolarities hwTriggerPolarity;
+} acquisitionSettings;
 
-struct acquisitionSettings acqSettings = {
+acquisitionSettings acqSettings = {
 	.rgbEnabled = 0,
 	.hdrEnabled = 1,
 	.trigger = FREE,
@@ -43,16 +54,16 @@ volatile uint8_t pulseTrainComplete = 1;
 volatile uint8_t hdrPulseCount = 0;
 volatile uint8_t cameraReady = 0;
 
-struct USART {
+typedef struct USART {
 	volatile uint8_t receiveComplete;
 	volatile uint8_t transmitComplete;
-	volatile char inBuffer[USART_BUFFER_LENGTH];
+	volatile char inBuffer[USART_BUFFER_LENGTH+1];
 	volatile uint8_t inBufferIndex;
-	volatile char outBuffer[USART_BUFFER_LENGTH];
+	volatile char outBuffer[USART_BUFFER_LENGTH+1];
 	volatile uint8_t outBufferIndex;
-};
+} USART;
 
-struct USART USART0 = {
+USART USART0 = {
 	.receiveComplete = 0,
 	.transmitComplete = 1,
 	.inBufferIndex = 0,
@@ -87,10 +98,11 @@ ISR(INT0_vect) {			//line out 1 rising/falling edge
 }
 
 ISR(USART_RX_vect) {
-	if(USART0.receiveComplete) return;
+	if(USART0.receiveComplete) return;	//reject incoming data if the last message has not been processed yet
 	char receiveChar = UDR0;
 	USART0.inBuffer[USART0.inBufferIndex] = receiveChar;
 	if((USART0.inBufferIndex >= USART_BUFFER_LENGTH-1) || (receiveChar == '\n')) {
+		USART0.inBuffer[USART0.inBufferIndex+1] = '\0';
 		USART0.receiveComplete = 1;
 		USART0.inBufferIndex = 0;
 	}
@@ -98,13 +110,13 @@ ISR(USART_RX_vect) {
 }
 
 ISR(USART_TX_vect) {
-	if((USART0.outBufferIndex >= USART_BUFFER_LENGTH-1) || (USART0.outBuffer[USART0.outBufferIndex] == '\n')) {
+	if((USART0.outBufferIndex >= USART_BUFFER_LENGTH) || (USART0.outBuffer[USART0.outBufferIndex] == '\0')) {
 		USART0.transmitComplete = 1;
 		USART0.outBufferIndex = 0;	//new message start index reset
 		return;
 	}
-	else USART0.outBufferIndex++;
 	UDR0 = USART0.outBuffer[USART0.outBufferIndex];	//queue next character
+	USART0.outBufferIndex++;
 }
 
 void processUsart() {
@@ -121,7 +133,37 @@ void processUsart() {
 			//message[1-3] = XYZ - acronym for getting parameter
 			if(cmpString(USART0.inBuffer+1, "RGE\0")) {
 				usartAddToOutBuffer(intToString(acqSettings.rgbEnabled));
-				usartAddToOutBuffer("\n");
+				usartAddToOutBuffer("\n\0");
+				usartSend();
+			}else if(cmpString(USART0.inBuffer+1, "HDE\0")) {
+				usartAddToOutBuffer(intToString(acqSettings.hdrEnabled));
+				usartAddToOutBuffer("\n\0");
+				usartSend();
+			}else if(cmpString(USART0.inBuffer+1, "TRI\0")) {
+				usartAddToOutBuffer(intToString(acqSettings.trigger));
+				usartAddToOutBuffer("\n\0");
+				usartSend();
+			}else if(cmpString(USART0.inBuffer+1, "TWE\0")) {
+				usartAddToOutBuffer(intToString(acqSettings.triggerWidthExposure));
+				usartAddToOutBuffer("\n\0");
+				usartSend();
+			}else if(cmpString(USART0.inBuffer+1, "NRL\0")) {
+				usartAddToOutBuffer(intToString(acqSettings.noRgbLight));
+				usartAddToOutBuffer("\n\0");
+				usartSend();
+			}else if(cmpString(USART0.inBuffer+1, "NHE\0")) {
+				usartAddToOutBuffer(intToString(acqSettings.noHdrExposureTime));
+				usartAddToOutBuffer("\n\0");
+				usartSend();
+			}else if(cmpString(USART0.inBuffer+1, "HET\0")) {
+				//TODO
+			}else if(cmpString(USART0.inBuffer+1, "TPE\0")) {
+				usartAddToOutBuffer(intToString(acqSettings.triggerPeriod));
+				usartAddToOutBuffer("\n\0");
+				usartSend();
+			}else if(cmpString(USART0.inBuffer+1, "TPO\0")) {
+				usartAddToOutBuffer(intToString(acqSettings.hwTriggerPolarity));
+				usartAddToOutBuffer("\n\0");
 				usartSend();
 			}
 		break;
@@ -133,9 +175,9 @@ void processUsart() {
 	USART0.receiveComplete = 0;	//ack message
 }
 
-void usartAddToOutBuffer(const char *str) {
+void usartAddToOutBuffer(const char *str) {		//strips ending \0
 	for (uint8_t i = 0; i < 0xFF; i++) {
-		if(str[i] == '\0') break;
+		if(str[i] == '\0') return;
 		USART0.outBuffer[USART0.outBufferIndex] = str[i];
 		USART0.outBufferIndex++;
 		if(USART0.outBufferIndex >= USART_BUFFER_LENGTH) return;
@@ -143,10 +185,11 @@ void usartAddToOutBuffer(const char *str) {
 }
 
 void usartSend() {
-	if(!USART0.transmitComplete) return;
+	if(!USART0.transmitComplete || stringEmpty(USART0.outBuffer)) return;
+	USART0.outBuffer[USART0.outBufferIndex] = '\0';	//terminate string (adding ignores \0)
 	USART0.transmitComplete = 0;
-	USART0.outBufferIndex = 0;	//send index reset
-	UDR0 = USART0.outBuffer[USART0.outBufferIndex];
+	USART0.outBufferIndex = 1;	//first TX complete interrupt starts at second char
+	UDR0 = USART0.outBuffer[0];
 }
 
 void checkCameraReadyStatus() {
@@ -230,9 +273,6 @@ int main(void) {
 	sei();
 	
 	DDRD |= (1<<7);		//DEBUG
-	
-	//char msg[] = "Dominik smrdi\n";
-	//usartSend(msg);
 	
     while(1) {
 		processUsart();
