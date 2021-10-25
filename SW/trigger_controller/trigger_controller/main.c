@@ -1,4 +1,4 @@
-#define F_CPU 16000000UL
+#include "global.h"
 #include <util/delay.h>
 #include <stdint.h>
 #include <avr/interrupt.h>
@@ -75,6 +75,7 @@ void startNewLineTrigger() {
 	startTriggerTimer();
 }
 
+//CALL THIS WHEN CHANGING EXPOSURE TIMES
 void precomputeTriggerTimerParameters() {
 	for(uint8_t i = 0; i < MAX_HDR_EXP_TIMES+1; i++) {
 		uint16_t expTime;
@@ -84,13 +85,13 @@ void precomputeTriggerTimerParameters() {
 		if(expTime < 125) {									//exp time < 125
 			precomputedTCCR0B[i] = (1<<CS01);				//8 prescaler, 0.5us period
 			precomputedOCR0A[i] = expTime*2;
-			}else if(expTime < 1000) {							//125 < exp time < 1000
+		}else if(expTime < 1000) {							//125 < exp time < 1000
 			precomputedTCCR0B[i] = (1<<CS01) | (1<<CS00);	//64 prescaler, 4us period
 			precomputedOCR0A[i] = expTime/4;
-			}else if(expTime < 4000) {							//1000 < exp time < 4000
+		}else if(expTime < 4000) {							//1000 < exp time < 4000
 			precomputedTCCR0B[i] = (1<<CS02);				//256 prescaler, 16us period
 			precomputedOCR0A[i] = expTime/16;
-			}else {												//4000 < exp time < 10000
+		}else {												//4000 < exp time < 10000
 			precomputedTCCR0B[i] = (1<<CS02) | (1<<CS00);	//1024 prescaler, 64us period
 			precomputedOCR0A[i] = expTime/64;
 		}
@@ -99,6 +100,15 @@ void precomputeTriggerTimerParameters() {
 
 uint8_t passFailBool(uint8_t val) {
 	if(val == 0 || val == 1) {
+		usartAddToOutBuffer("OK");
+		return 1;
+	}
+	usartAddToOutBuffer("FAIL");
+	return 0;
+}
+
+uint8_t passFailExpRange(uint16_t val) {
+	if(val >= MIN_EXP_TIME && val <= MAX_EXP_TIME) {
 		usartAddToOutBuffer("OK");
 		return 1;
 	}
@@ -132,11 +142,23 @@ void processUsart() {
 				acqSettings.noRgbLight = USART0.inBuffer[4] - '0';
 				if(!passFailBool(acqSettings.noRgbLight)) acqSettings.noRgbLight = 0;
 			}else if(cmpString(USART0.inBuffer+1, "NHE\0")) {
-				//TODO
+				acqSettings.noHdrExposureTime = stringToInt(USART0.inBuffer+4);
+				if(!passFailExpRange(acqSettings.noHdrExposureTime)) acqSettings.noHdrExposureTime = MIN_EXP_TIME;
+				precomputeTriggerTimerParameters();
 			}else if(cmpString(USART0.inBuffer+1, "HET\0")) {
-				//TODO
+				uint16_t *values = stringsToInts(USART0.inBuffer+4, ',');
+				for(uint8_t i = 0; i < 0xFF; i++) {
+					acqSettings.hdrExposureTime[i] = values[i];
+					if(values[i] == 0xFFFF) break;
+					if(!passFailExpRange(values[i])) {
+						acqSettings.hdrExposureTime[i] = 0xFFFF;
+						break;
+					}
+				}
+				precomputeTriggerTimerParameters();
 			}else if(cmpString(USART0.inBuffer+1, "TPE\0")) {
-				//TODO
+				acqSettings.triggerPeriod = stringToInt(USART0.inBuffer+4);
+				usartAddToOutBuffer("OK");
 			}else if(cmpString(USART0.inBuffer+1, "TPO\0")) {
 				acqSettings.hwTriggerPolarity = USART0.inBuffer[4] - '0';
 				if(acqSettings.hwTriggerPolarity < NUM_OF_TRIGGER_POLARITIES) usartAddToOutBuffer("OK");
@@ -209,11 +231,7 @@ int main(void) {
 	EICRA = (1<<ISC00);		//INT0 on logical change
 	EIMSK = (1<<INT0);		//enable INT0
 	
-	//setup UART
-	UCSR0B = (1<<RXCIE0) | (1<<TXCIE0) | (1<<RXEN0) | (1<<TXEN0);	//enable transmitter, receiver and corresponding interrupts
-	UCSR0C = (1<<UCSZ01) | (1<<UCSZ00);	//8-bit character size
-	UBRR0 = F_CPU/(16UL*9600) - 1;		//9600 baud
-	
+	usartInit();
 	precomputeTriggerTimerParameters();
 	sei();
 	

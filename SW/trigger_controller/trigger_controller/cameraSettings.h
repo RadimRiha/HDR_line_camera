@@ -4,6 +4,8 @@
 #include <stdint.h>
 
 #define MAX_HDR_EXP_TIMES 5		//maximum number of HDR exposure times
+#define MIN_EXP_TIME 2
+#define MAX_EXP_TIME 10000
 
 typedef enum triggerTypes {
 	FREE,
@@ -24,7 +26,7 @@ typedef enum hwTriggerPolarities {
 typedef struct acquisitionSettings {
 	uint8_t rgbEnabled;				//acquisition with/without RGB light cycling
 	uint8_t hdrEnabled;				//acquisition with/without HDR sequence
-	triggerTypes trigger;		//triggering type
+	triggerTypes trigger;			//triggering type
 	uint8_t triggerWidthExposure;	//exposure control using trigger width/light duration
 	uint8_t noRgbLight;				//use white light if RGB is disabled
 	uint16_t noHdrExposureTime;		//use this exposure time if HDR is disabled

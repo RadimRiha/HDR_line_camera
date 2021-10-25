@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <avr/interrupt.h>
 
-#define USART_BUFFER_LENGTH 20
+#define USART_BUFFER_LENGTH 40
 
 typedef struct USART {
 	volatile uint8_t receiveComplete;
@@ -17,6 +17,7 @@ typedef struct USART {
 
 extern USART USART0;
 
+void usartInit();
 void usartAddToOutBuffer(const char *str);
 void usartSend();
 
