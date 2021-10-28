@@ -4,7 +4,7 @@
 #include <avr/interrupt.h>
 #include "string.h"
 #include "USART.h"
-#include "cameraSettings.h"
+#include "settings.h"
 
 acquisitionSettings acqSettings = {
 	.rgbEnabled = 0,

@@ -91,7 +91,7 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="cameraSettings.h">
+    <Compile Include="settings.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="global.h">

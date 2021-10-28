@@ -1,5 +1,5 @@
-#ifndef CAMERASETTINGS_H_
-#define CAMERASETTINGS_H_
+#ifndef SETTINGS_H_
+#define SETTINGS_H_
 
 #include <stdint.h>
 

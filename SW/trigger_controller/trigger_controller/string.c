@@ -1,5 +1,5 @@
 #include "string.h"
-#include "cameraSettings.h"
+#include "settings.h"
 
 uint8_t stringLength(volatile const char *str) {
 	for(uint8_t i = 0; i < 0xFF; i++) {
