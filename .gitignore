@@ -1,6 +1,8 @@
 Debug
 Release
 
+*.zip
+
 *.s#*
 *.b#*
 

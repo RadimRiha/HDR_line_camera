@@ -18099,6 +18099,7 @@ Source: http://www.ftdichip.com/Documents/DataSheets/DS_FT232R_v104.pdf</descrip
 <smd name="4" x="1.27" y="0" dx="1.27" dy="1.27" layer="1" roundness="100"/>
 <smd name="5" x="-1.27" y="-2.54" dx="1.27" dy="1.27" layer="1" roundness="100"/>
 <smd name="6" x="1.27" y="-2.54" dx="1.27" dy="1.27" layer="1" roundness="100"/>
+<circle x="-2.54" y="2.54" radius="0.127" width="0.1524" layer="21"/>
 </package>
 <package name="USB_A">
 <pad name="P$1" x="0" y="6.57" drill="2.3" diameter="4.5"/>
@@ -21327,7 +21328,9 @@ Source: www.kingbright.com</description>
 </class>
 </classes>
 <parts>
-<part name="IC1" library="custom ICs" deviceset="USBLC6-4" device="" package3d_urn="urn:adsk.eagle:package:30993/1"/>
+<part name="IC1" library="custom ICs" deviceset="USBLC6-4" device="" package3d_urn="urn:adsk.eagle:package:30993/1">
+<attribute name="MPN" value="USBLC6"/>
+</part>
 <part name="C1" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="C-EU" device="C0805" package3d_urn="urn:adsk.eagle:package:23617/2" value="100nF"/>
 <part name="R1" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="R0805" package3d_urn="urn:adsk.eagle:package:23553/2" value="120R"/>
 <part name="IC2" library="custom ICs" deviceset="RS422" device="-SO8" package3d_urn="urn:adsk.eagle:package:17511/1">
@@ -21358,18 +21361,32 @@ Source: www.kingbright.com</description>
 <part name="GND8" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
 <part name="GND9" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
 <part name="GND10" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
-<part name="IC7" library="74xx-eu" library_urn="urn:adsk.eagle:library:85" deviceset="74*00" device="D" package3d_urn="urn:adsk.eagle:package:1010/2" technology="HC"/>
-<part name="IC8" library="74xx-eu" library_urn="urn:adsk.eagle:library:85" deviceset="74*139" device="D" package3d_urn="urn:adsk.eagle:package:2010/1" technology="HC"/>
+<part name="IC7" library="74xx-eu" library_urn="urn:adsk.eagle:library:85" deviceset="74*00" device="D" package3d_urn="urn:adsk.eagle:package:1010/2" technology="HC">
+<attribute name="MPN" value="SN74HC00DR"/>
+</part>
+<part name="IC8" library="74xx-eu" library_urn="urn:adsk.eagle:library:85" deviceset="74*139" device="D" package3d_urn="urn:adsk.eagle:package:2010/1" technology="HC">
+<attribute name="MPN" value="SN74HC139DR"/>
+</part>
 <part name="GND11" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
 <part name="GND12" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
-<part name="FS1" library="custom general" deviceset="POLYFUSE" device="_1210"/>
+<part name="FS1" library="custom general" deviceset="POLYFUSE" device="_1210">
+<attribute name="MPN" value="SM010-60"/>
+</part>
 <part name="C7" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="C-EU" device="C0805" package3d_urn="urn:adsk.eagle:package:23617/2" value="100nF"/>
 <part name="C8" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="C-EU" device="C0805" package3d_urn="urn:adsk.eagle:package:23617/2" value="100nF"/>
 <part name="C9" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="C-EU" device="C0805" package3d_urn="urn:adsk.eagle:package:23617/2" value="100nF"/>
 <part name="C10" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="C-EU" device="C0805" package3d_urn="urn:adsk.eagle:package:23617/2" value="100nF"/>
 <part name="GND13" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
 <part name="GND14" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
-<part name="C11" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="CPOL-EU" device="153CLV-0605" package3d_urn="urn:adsk.eagle:package:23398/2" value="100uF"/>
+<part name="C11" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="CPOL-EU" device="153CLV-0605" package3d_urn="urn:adsk.eagle:package:23398/2" value="47uF">
+<spice>
+<pinmapping spiceprefix="C">
+<pinmap gate="G$1" pin="+" pinorder="1"/>
+<pinmap gate="G$1" pin="-" pinorder="2"/>
+</pinmapping>
+</spice>
+<attribute name="MPN" value="SC1E476M6L005VR"/>
+</part>
 <part name="GND15" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
 <part name="IC9" library="custom ICs" deviceset="RS422" device="-SO8" package3d_urn="urn:adsk.eagle:package:17511/1">
 <attribute name="MPN" value="DS8921AMX/NOPB"/>
@@ -21401,10 +21418,14 @@ Source: www.kingbright.com</description>
 <part name="R15" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="R0805" package3d_urn="urn:adsk.eagle:package:23553/2" value="10K"/>
 <part name="GND18" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
 <part name="R16" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="R0805" package3d_urn="urn:adsk.eagle:package:23553/2" value="10K"/>
-<part name="IC12" library="custom ICs" deviceset="USBLC6-4" device="" package3d_urn="urn:adsk.eagle:package:30993/1"/>
+<part name="IC12" library="custom ICs" deviceset="USBLC6-4" device="" package3d_urn="urn:adsk.eagle:package:30993/1">
+<attribute name="MPN" value="USBLC6"/>
+</part>
 <part name="GND20" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
 <part name="R17" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="R0805" package3d_urn="urn:adsk.eagle:package:23553/2" value="120R"/>
-<part name="S1" library="smd-special" library_urn="urn:adsk.eagle:library:362" deviceset="SWS006" device="" package3d_urn="urn:adsk.eagle:package:26472/1"/>
+<part name="S1" library="smd-special" library_urn="urn:adsk.eagle:library:362" deviceset="SWS006" device="" package3d_urn="urn:adsk.eagle:package:26472/1">
+<attribute name="MPN" value="A6S-6102-H"/>
+</part>
 <part name="R18" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="R0805" package3d_urn="urn:adsk.eagle:package:23553/2" value="10K"/>
 <part name="R19" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="R0805" package3d_urn="urn:adsk.eagle:package:23553/2" value="10K"/>
 <part name="LED_PWR" library="led" library_urn="urn:adsk.eagle:library:259" deviceset="LED" device="SML0805" package3d_urn="urn:adsk.eagle:package:15830/1"/>
@@ -21417,14 +21438,18 @@ Source: www.kingbright.com</description>
 <part name="GND5" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
 <part name="TRIG" library="custom connectors" deviceset="SMPAD-7" device=""/>
 <part name="GND22" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
-<part name="IC14" library="custom ICs" deviceset="74*1G157" device=""/>
+<part name="IC14" library="custom ICs" deviceset="74*1G157" device="">
+<attribute name="MPN" value="74LVC1G157GV.125"/>
+</part>
 <part name="C16" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="C-EU" device="C0805" package3d_urn="urn:adsk.eagle:package:23617/2" value="100nF"/>
 <part name="H1" library="custom mounting" deviceset="HOLE" device="-3MM_PLATED"/>
 <part name="H2" library="custom mounting" deviceset="HOLE" device="-3MM_PLATED"/>
 <part name="H3" library="custom mounting" deviceset="HOLE" device="-3MM_PLATED"/>
 <part name="H4" library="custom mounting" deviceset="HOLE" device="-3MM_PLATED"/>
 <part name="GND23" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
-<part name="Q1" library="custom passives" deviceset="RESONATOR_CRY" device="" value="16MHz"/>
+<part name="Q1" library="custom passives" deviceset="RESONATOR_CRY" device="" value="16MHz">
+<attribute name="MPN" value="3225-16M-SR"/>
+</part>
 <part name="C6" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="C-EU" device="C0805" package3d_urn="urn:adsk.eagle:package:23617/2" value="100nF"/>
 <part name="GND24" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
 <part name="C17" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="C-EU" device="C0805" package3d_urn="urn:adsk.eagle:package:23617/2" value="100nF"/>
@@ -21499,6 +21524,7 @@ Source: www.kingbright.com</description>
 <instances>
 <instance part="IC1" gate="A" x="58.42" y="101.6" smashed="yes" rot="R90">
 <attribute name="NAME" x="46.99" y="91.44" size="1.778" layer="95" rot="R90"/>
+<attribute name="MPN" x="58.42" y="101.6" size="1.778" layer="96" rot="R90" display="off"/>
 </instance>
 <instance part="C1" gate="G$1" x="25.4" y="22.86" smashed="yes">
 <attribute name="NAME" x="27.559" y="16.764" size="1.778" layer="95" rot="R90"/>
@@ -21590,6 +21616,7 @@ Source: www.kingbright.com</description>
 </instance>
 <instance part="IC7" gate="A" x="271.78" y="53.34" smashed="yes">
 <attribute name="NAME" x="274.32" y="56.515" size="1.778" layer="95"/>
+<attribute name="MPN" x="271.78" y="53.34" size="1.778" layer="96" display="off"/>
 </instance>
 <instance part="IC7" gate="B" x="271.78" y="40.64" smashed="yes">
 <attribute name="NAME" x="274.32" y="43.815" size="1.778" layer="95"/>
@@ -21603,6 +21630,7 @@ Source: www.kingbright.com</description>
 <instance part="IC8" gate="A" x="241.3" y="53.34" smashed="yes">
 <attribute name="NAME" x="233.68" y="59.055" size="1.778" layer="95"/>
 <attribute name="VALUE" x="233.68" y="43.18" size="1.778" layer="96"/>
+<attribute name="MPN" x="241.3" y="53.34" size="1.778" layer="96" display="off"/>
 </instance>
 <instance part="IC8" gate="B" x="241.3" y="30.48" smashed="yes">
 <attribute name="NAME" x="233.68" y="36.195" size="1.778" layer="95"/>
@@ -21623,6 +21651,7 @@ Source: www.kingbright.com</description>
 <instance part="FS1" gate="G$1" x="27.94" y="78.74" smashed="yes">
 <attribute name="NAME" x="24.13" y="80.137" size="1.778" layer="95"/>
 <attribute name="VALUE" x="24.13" y="75.819" size="1.778" layer="96"/>
+<attribute name="MPN" x="27.94" y="78.74" size="1.778" layer="96" display="off"/>
 </instance>
 <instance part="C7" gate="G$1" x="71.12" y="22.86" smashed="yes">
 <attribute name="NAME" x="73.279" y="16.764" size="1.778" layer="95" rot="R90"/>
@@ -21649,6 +21678,7 @@ Source: www.kingbright.com</description>
 <instance part="C11" gate="G$1" x="35.56" y="68.58" smashed="yes">
 <attribute name="NAME" x="36.703" y="69.0626" size="1.778" layer="95"/>
 <attribute name="VALUE" x="36.703" y="63.9826" size="1.778" layer="96"/>
+<attribute name="MPN" x="35.56" y="68.58" size="1.778" layer="96" display="off"/>
 </instance>
 <instance part="GND15" gate="1" x="35.56" y="58.42" smashed="yes">
 <attribute name="VALUE" x="33.02" y="55.88" size="1.778" layer="96"/>
@@ -21755,6 +21785,7 @@ Source: www.kingbright.com</description>
 </instance>
 <instance part="IC12" gate="A" x="302.26" y="193.04" smashed="yes" rot="R90">
 <attribute name="NAME" x="290.83" y="182.88" size="1.778" layer="95" rot="R90"/>
+<attribute name="MPN" x="302.26" y="193.04" size="1.778" layer="96" rot="R90" display="off"/>
 </instance>
 <instance part="GND20" gate="1" x="302.26" y="172.72" smashed="yes">
 <attribute name="VALUE" x="299.72" y="170.18" size="1.778" layer="96"/>
@@ -21765,6 +21796,7 @@ Source: www.kingbright.com</description>
 </instance>
 <instance part="S1" gate="G$1" x="271.78" y="175.26" smashed="yes">
 <attribute name="NAME" x="264.16" y="172.72" size="1.778" layer="95" rot="R90"/>
+<attribute name="MPN" x="271.78" y="175.26" size="1.778" layer="96" display="off"/>
 </instance>
 <instance part="R18" gate="G$1" x="279.4" y="198.12" smashed="yes" rot="R90">
 <attribute name="NAME" x="277.9014" y="194.31" size="1.778" layer="95" rot="R90"/>
@@ -21876,6 +21908,7 @@ Source: www.kingbright.com</description>
 <instance part="IC14" gate="A" x="238.76" y="106.68" smashed="yes">
 <attribute name="NAME" x="233.68" y="114.935" size="1.778" layer="95"/>
 <attribute name="VALUE" x="233.68" y="96.52" size="1.778" layer="96"/>
+<attribute name="MPN" x="238.76" y="106.68" size="1.778" layer="96" display="off"/>
 </instance>
 <instance part="IC14" gate="P" x="142.24" y="22.86" smashed="yes">
 <attribute name="NAME" x="140.335" y="19.685" size="1.778" layer="95" rot="R90"/>
@@ -21902,6 +21935,7 @@ Source: www.kingbright.com</description>
 <instance part="Q1" gate="G$1" x="30.48" y="182.88" smashed="yes" rot="R90">
 <attribute name="NAME" x="27.94" y="181.61" size="1.778" layer="95" rot="R90"/>
 <attribute name="VALUE" x="34.798" y="179.07" size="1.778" layer="96" rot="R90"/>
+<attribute name="MPN" x="30.48" y="182.88" size="1.778" layer="96" rot="R90" display="off"/>
 </instance>
 <instance part="C6" gate="G$1" x="132.08" y="157.48" smashed="yes">
 <attribute name="NAME" x="134.239" y="151.384" size="1.778" layer="95" rot="R90"/>
@@ -22387,9 +22421,9 @@ Source: www.kingbright.com</description>
 <label x="325.12" y="60.96" size="1.778" layer="95" rot="R180" xref="yes"/>
 </segment>
 <segment>
-<pinref part="IC13" gate="IC" pin="PC5(ADC5/SCL/PCINT13)"/>
-<wire x1="63.5" y1="160.02" x2="38.1" y2="160.02" width="0.1524" layer="91"/>
-<label x="38.1" y="160.02" size="1.778" layer="95" rot="R180" xref="yes"/>
+<pinref part="IC13" gate="IC" pin="PD7(AIN1/PCINT23)"/>
+<wire x1="129.54" y1="177.8" x2="152.4" y2="177.8" width="0.1524" layer="91"/>
+<label x="152.4" y="177.8" size="1.778" layer="95" xref="yes"/>
 </segment>
 </net>
 <net name="LINE_OUT_1+" class="0">
@@ -23179,6 +23213,31 @@ Source: www.kingbright.com</description>
 </nets>
 </sheet>
 </sheets>
+<errors>
+<approved hash="104,1,50.8,30.48,IC2P,VCC,+5V,,,"/>
+<approved hash="104,1,35.56,30.48,IC3P,VCC,+5V,,,"/>
+<approved hash="104,1,20.32,30.48,IC4P,VCC,+5V,,,"/>
+<approved hash="104,1,86.36,109.22,IC6,VCC,+5V,,,"/>
+<approved hash="202,1,86.36,96.52,IC6,OSCI,,,,"/>
+<approved hash="202,1,114.3,101.6,IC6,!CTS,,,,"/>
+<approved hash="202,1,114.3,96.52,IC6,!DSR,,,,"/>
+<approved hash="202,1,114.3,93.98,IC6,!DCD,,,,"/>
+<approved hash="202,1,114.3,91.44,IC6,!RI,,,,"/>
+<approved hash="104,1,86.36,106.68,IC6,VCCIO,+5V,,,"/>
+<approved hash="104,1,66.04,30.48,IC7P,VCC,+5V,,,"/>
+<approved hash="104,1,81.28,30.48,IC8P,VCC,+5V,,,"/>
+<approved hash="104,1,96.52,30.48,IC9P,VCC,+5V,,,"/>
+<approved hash="104,1,111.76,30.48,IC10P,VCC,+5V,,,"/>
+<approved hash="104,1,127,30.48,IC11P,VCC,+5V,,,"/>
+<approved hash="104,1,129.54,165.1,IC13,AVCC,+5V,,,"/>
+<approved hash="104,1,157.48,27.94,IC13PWR,UCC,+5V,,,"/>
+<approved hash="104,1,142.24,30.48,IC14P,VCC,+5V,,,"/>
+<approved hash="113,1,27.94,79.7789,FS1,,,,,"/>
+<approved hash="113,1,128.27,80.9583,LED_RX,,,,,"/>
+<approved hash="113,1,128.27,88.5783,LED_TX,,,,,"/>
+<approved hash="113,1,25.7217,102.87,LED_PWR,,,,,"/>
+<approved hash="113,1,96.52,175.26,IC13,,,,,"/>
+</errors>
 </schematic>
 </drawing>
 <compatibility>
