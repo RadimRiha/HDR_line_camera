@@ -38,6 +38,7 @@ ISR(USART_TX_vect) {
 }
 
 void usartAddToOutBuffer(const char *str) {		//strips ending \0
+	//change this to ring buffer!
 	for (uint8_t i = 0; i < 0xFF; i++) {
 		if(str[i] == '\0') return;
 		USART0.outBuffer[USART0.outBufferIndex] = str[i];

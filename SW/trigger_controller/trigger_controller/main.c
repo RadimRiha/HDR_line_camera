@@ -8,16 +8,16 @@
 
 acquisitionSettings acqSettings = {
 	.rgbEnabled = 0,
-	.hdrEnabled = 1,
+	.hdrEnabled = 0,
 	.trigger = FREE,
 	.triggerWidthExposure = 1,
 	.noRgbLight = 0,
-	.noHdrExposureTime = 5,
-	.hdrExposureTime[0] = 200,
-	.hdrExposureTime[1] = 400,
+	.noHdrExposureTime = 1000,
+	.hdrExposureTime[0] = 400,
+	.hdrExposureTime[1] = 600,
 	.hdrExposureTime[2] = 800,
 	.hdrExposureTime[3] = 0xFFFF,
-	.triggerPeriod = 1000,
+	.triggerPeriod = 0xFFFF,
 	.hwTriggerPolarity = RISING,
 };
 
@@ -30,14 +30,32 @@ volatile uint8_t cameraReady = 0;
 
 void startTriggerTimer();
 void startNewLineTrigger();
+void checkCameraReadyStatus();
+uint8_t changeTriggerMode(uint8_t trigger);
 
-ISR(TIMER0_COMPA_vect) {
-	TCCR0B = 0;		//stop the timer
+ISR(TIMER0_COMPA_vect) {	//trigger timer pulse end
+	TCCR0B = 0;				//stop the timer
 	if(!acqSettings.hdrEnabled) pulseTrainComplete = 1;
 	else if(acqSettings.hdrExposureTime[hdrPulseCount] == 0xFFFF) pulseTrainComplete = 1;
 }
 
+ISR(TIMER1_COMPA_vect) {					//timed trigger pulse
+	PORTD |= (1<<7);		//DEBUG
+	if(cameraReady && pulseTrainComplete) {	//camera can keep up
+		startNewLineTrigger();				//new trigger
+	}
+	else {									//camera can't keep up
+		changeTriggerMode(NONE);			//disable triggering
+		usartAddToOutBuffer("OVERTRIGGER\n\0");
+		usartSend();
+	}
+}
+
 ISR(INT0_vect) {			//line out 1 rising/falling edge
+	checkCameraReadyStatus();
+}
+
+void checkCameraReadyStatus() {
 	if(PIND & (1<<2)) {		//rising edge or high level of LINE OUT 1 (line trigger wait)
 		if(!cameraReady) {	//rising edge
 			cameraReady = 1;
@@ -45,7 +63,7 @@ ISR(INT0_vect) {			//line out 1 rising/falling edge
 			else if(acqSettings.trigger == FREE) startNewLineTrigger();	//FREE run mode triggering
 		}
 	}
-	else {					//falling edge or low level of LINE OUT 1 (line trigger wait)
+	else {		//falling edge or low level of LINE OUT 1 (line trigger wait)
 		cameraReady = 0;
 	}
 }
@@ -98,6 +116,50 @@ void precomputeTriggerTimerParameters() {
 	}
 }
 
+uint8_t setTimedTriggerPeriod(uint16_t period) {
+	//timer period for 64 prescaler = 1 / 16MHz * 64 = 4us
+	cli();
+	OCR1A = period / 4;
+	if(OCR1A < 1) {
+		OCR1A = 0xFFFF/4;
+		acqSettings.triggerPeriod = 0xFFFF;
+		sei();
+		return 0;
+	}
+	acqSettings.triggerPeriod = period;
+	sei();
+	return 1;
+}
+
+uint8_t changeTriggerMode(uint8_t trigger) {
+	cli();
+	uint8_t retVal = 1;
+	switch(trigger) {
+		case FREE:
+			if(PIND & (1<<2)) cameraReady = 0;	//simulate rising edge if camera is already ready
+		break;
+		case TIMED:
+			TCNT1 = 0;	//reset timed trigger
+			TCCR1B |= (1<<CS10) | (1<<CS11);	//start timed trigger with 64 prescaler
+		break;
+		case HW:
+			//TODO
+		break;
+		case ENCODER:
+			//TODO
+		break;
+		default:	//NONE or out of range
+			if(trigger >= NUM_OF_TRIGGER_TYPES)	{	//not in the list - fail
+				trigger = NONE;
+				retVal = 0;
+			}
+			TCCR1B &= ~((1<<CS10) | (1<<CS11));		//disable timed trigger
+	}
+	acqSettings.trigger = trigger;
+	sei();
+	return retVal;
+}
+
 uint8_t passFailBool(uint8_t val) {
 	if(val == 0 || val == 1) {
 		usartAddToOutBuffer("OK");
@@ -129,12 +191,8 @@ void processUsart() {
 				acqSettings.hdrEnabled = USART0.inBuffer[4] - '0';
 				if(!passFailBool(acqSettings.hdrEnabled)) acqSettings.hdrEnabled = 0;
 			}else if(cmpString(USART0.inBuffer+1, "TRI\0")) {
-				acqSettings.trigger = USART0.inBuffer[4] - '0';
-				if(acqSettings.trigger < NUM_OF_TRIGGER_TYPES) usartAddToOutBuffer("OK");
-				else {
-					usartAddToOutBuffer("FAIL");
-					acqSettings.trigger = FREE;
-				}
+				if(changeTriggerMode(USART0.inBuffer[4] - '0')) usartAddToOutBuffer("OK");
+				else usartAddToOutBuffer("FAIL");
 			}else if(cmpString(USART0.inBuffer+1, "TWE\0")) {
 				acqSettings.triggerWidthExposure = USART0.inBuffer[4] - '0';
 				if(!passFailBool(acqSettings.triggerWidthExposure)) acqSettings.triggerWidthExposure = 0;
@@ -157,8 +215,8 @@ void processUsart() {
 				}
 				precomputeTriggerTimerParameters();
 			}else if(cmpString(USART0.inBuffer+1, "TPE\0")) {
-				acqSettings.triggerPeriod = stringToInt(USART0.inBuffer+4);
-				usartAddToOutBuffer("OK");
+				if(setTimedTriggerPeriod(stringToInt(USART0.inBuffer+4))) usartAddToOutBuffer("OK");
+				else usartAddToOutBuffer("FAIL");
 			}else if(cmpString(USART0.inBuffer+1, "TPO\0")) {
 				acqSettings.hwTriggerPolarity = USART0.inBuffer[4] - '0';
 				if(acqSettings.hwTriggerPolarity < NUM_OF_TRIGGER_POLARITIES) usartAddToOutBuffer("OK");
@@ -206,26 +264,18 @@ void processUsart() {
 	USART0.receiveComplete = 0;	//ack message
 }
 
-void checkCameraReadyStatus() {
-	if(PIND & (1<<2)) {	//rising edge or high level of LINE OUT 1 (line trigger wait)
-		if(!cameraReady) {	//rising edge
-			cameraReady = 1;
-			if(!pulseTrainComplete) startTriggerTimer();				//another HDR trigger
-			else if(acqSettings.trigger == FREE) startNewLineTrigger();	//FREE run mode triggering
-		}
-	}
-	else {				//falling edge or low level of LINE OUT 1 (line trigger wait)
-		cameraReady = 0;
-	}
-}
-
 int main(void) {
 	cli();
-	//timer 0 setup
+	//timer 0 setup (trigger timer)
 	DDRD |= (1<<6) | (1<<5);			//OC0A, OC0B output
 	TCCR0A = (1<<WGM01) | (1<<WGM00);	//Fast PWM
 	TCCR0B = 0;							//stop the timer
 	TIMSK0 = (1<<OCIE0A);				//enable COMPA interrupt
+	
+	//timer 1 setup (timed trigger)
+	TCCR1B = (1<<WGM12);	//CTC mode
+	TIMSK1 = (1<<OCIE1A);	//enable COMPA interrupt
+	setTimedTriggerPeriod(acqSettings.triggerPeriod);
 	
 	//line out 1 interrupt
 	EICRA = (1<<ISC00);		//INT0 on logical change
@@ -239,6 +289,6 @@ int main(void) {
 	
     while(1) {
 		processUsart();
-		checkCameraReadyStatus();
+		checkCameraReadyStatus();	//check status periodically (camera can be ready at startup - does not generate rising edge interrupt)
     }
 }

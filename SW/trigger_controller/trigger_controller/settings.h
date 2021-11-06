@@ -8,6 +8,7 @@
 #define MAX_EXP_TIME 10000
 
 typedef enum triggerTypes {
+	NONE,
 	FREE,
 	TIMED,
 	HW,
