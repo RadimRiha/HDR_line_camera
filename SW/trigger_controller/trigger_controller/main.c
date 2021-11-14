@@ -7,45 +7,38 @@
 #include "settings.h"
 
 acquisitionSettings acqSettings = {
-	.rgbEnabled = 0,
-	.hdrEnabled = 0,
-	.trigger = FREE,
-	.triggerWidthExposure = 1,
-	.noRgbLight = 0,
-	.noHdrExposureTime = 1000,
-	.hdrExposureTime[0] = 400,
-	.hdrExposureTime[1] = 600,
-	.hdrExposureTime[2] = 800,
-	.hdrExposureTime[3] = 0xFFFF,
-	.triggerPeriod = 0xFFFF,
+	.pulseOutput[0] = 0,
+	.pulseOutput[1] = 0xFF,
+	.pulsePeriod[0] = 1000,
+	.pulsePeriod[1] = 0xFFFF,
+	.triggerSource = NONE,
+	.timedTriggerPeriod = 0xFFFF,
 	.hwTriggerPolarity = RISING,
 };
 
-uint8_t precomputedOCR0A[MAX_HDR_EXP_TIMES+1];
-uint8_t precomputedTCCR0B[MAX_HDR_EXP_TIMES+1];
+uint8_t precomputedOCR0A[MAX_PULSE_CONFIGS+1];
+uint8_t precomputedTCCR0B[MAX_PULSE_CONFIGS+1];
 
 volatile uint8_t pulseTrainComplete = 1;
-volatile uint8_t hdrPulseCount = 0;
+volatile uint8_t pulseCount = 0;
 volatile uint8_t cameraReady = 0;
 
-void startTriggerTimer();
-void startNewLineTrigger();
+void startPulseTimer();
+void startNewPulseTrain();
 void checkCameraReadyStatus();
-uint8_t changeTriggerMode(uint8_t trigger);
+uint8_t changeTriggerSource(triggerSources source);
 
-ISR(TIMER0_COMPA_vect) {	//trigger timer pulse end
+ISR(TIMER0_COMPA_vect) {	//pulse timer end
 	TCCR0B = 0;				//stop the timer
-	if(!acqSettings.hdrEnabled) pulseTrainComplete = 1;
-	else if(acqSettings.hdrExposureTime[hdrPulseCount] == 0xFFFF) pulseTrainComplete = 1;
+	if(acqSettings.pulseOutput[pulseCount] == 0xFF || pulseCount >= MAX_PULSE_CONFIGS) pulseTrainComplete = 1;
 }
 
-ISR(TIMER1_COMPA_vect) {					//timed trigger pulse
-	PORTD |= (1<<7);		//DEBUG
+ISR(TIMER1_COMPA_vect) {					//timed trigger end
 	if(cameraReady && pulseTrainComplete) {	//camera can keep up
-		startNewLineTrigger();				//new trigger
+		startNewPulseTrain();
 	}
 	else {									//camera can't keep up
-		changeTriggerMode(NONE);			//disable triggering
+		changeTriggerSource(NONE);			//disable triggering
 		usartAddToOutBuffer("OVERTRIGGER\n\0");
 		usartSend();
 	}
@@ -59,8 +52,8 @@ void checkCameraReadyStatus() {
 	if(PIND & (1<<2)) {		//rising edge or high level of LINE OUT 1 (line trigger wait)
 		if(!cameraReady) {	//rising edge
 			cameraReady = 1;
-			if(!pulseTrainComplete) startTriggerTimer();				//another HDR trigger
-			else if(acqSettings.trigger == FREE) startNewLineTrigger();	//FREE run mode triggering
+			if(!pulseTrainComplete) startPulseTimer();	//another pulse
+			else if(acqSettings.triggerSource == FREE) startNewPulseTrain();	//FREE run mode triggering
 		}
 	}
 	else {		//falling edge or low level of LINE OUT 1 (line trigger wait)
@@ -68,50 +61,56 @@ void checkCameraReadyStatus() {
 	}
 }
 
-void startTriggerTimer() {
-	uint8_t TCCR0B_val;
-	if(acqSettings.hdrEnabled) {
-		OCR0A = precomputedOCR0A[hdrPulseCount];
-		TCCR0B_val = precomputedTCCR0B[hdrPulseCount];
-		hdrPulseCount++;
+void startPulseTimer() {
+	OCR0A = precomputedOCR0A[pulseCount];
+	uint8_t TCCR0B_val = precomputedTCCR0B[pulseCount];
+	
+	//pulse output select
+	TCCR0A = (1<<COM0B1) | (1<<WGM01) | (1<<WGM00);	//pulse output to light
+	switch (acqSettings.pulseOutput[pulseCount]) {
+		case LINE_START:	//pulse output to camera
+			TCCR0A = (1<<COM0A1) | (1<<WGM01) | (1<<WGM00);
+		break;
+		case L1:
+		break;
+		case L2:
+		break;
+		case L3:
+		break;
+		default:
+		break;
 	}
-	else {
-		OCR0A = precomputedOCR0A[MAX_HDR_EXP_TIMES];
-		TCCR0B_val = precomputedTCCR0B[MAX_HDR_EXP_TIMES];
-	}
+	
+	pulseCount++;
 	OCR0B = OCR0A;
 	TCNT0 = 0xFF;
 	TCCR0B = TCCR0B_val;	//start the timer
 }
 
-void startNewLineTrigger() {
+void startNewPulseTrain() {
 	if(!pulseTrainComplete || !cameraReady) return;
 	pulseTrainComplete = 0;
-	hdrPulseCount = 0;
-	if(acqSettings.triggerWidthExposure) TCCR0A = (1<<COM0A1) | (1<<WGM01) | (1<<WGM00);	//trigger output to camera
-	else TCCR0A = (1<<COM0B1) | (1<<WGM01) | (1<<WGM00);	//trigger output to RGB light
-	startTriggerTimer();
+	pulseCount = 0;
+	startPulseTimer();
 }
 
-//CALL THIS WHEN CHANGING EXPOSURE TIMES
-void precomputeTriggerTimerParameters() {
-	for(uint8_t i = 0; i < MAX_HDR_EXP_TIMES+1; i++) {
-		uint16_t expTime;
-		if(i != MAX_HDR_EXP_TIMES) expTime = acqSettings.hdrExposureTime[i];
-		else expTime = acqSettings.noHdrExposureTime;
-		
-		if(expTime < 125) {									//exp time < 125
+//CALL THIS WHEN CHANGING PULSE PERIODS
+void precomputePulseTimerParameters() {
+	uint16_t pulseTime;
+	for(uint8_t i = 0; i < MAX_PULSE_CONFIGS+1; i++) {
+		pulseTime = acqSettings.pulsePeriod[i];
+		if(pulseTime < 125) {								//pulseTime < 125
 			precomputedTCCR0B[i] = (1<<CS01);				//8 prescaler, 0.5us period
-			precomputedOCR0A[i] = expTime*2;
-		}else if(expTime < 1000) {							//125 < exp time < 1000
+			precomputedOCR0A[i] = pulseTime*2;
+		}else if(pulseTime < 1000) {						//125 < pulseTime < 1000
 			precomputedTCCR0B[i] = (1<<CS01) | (1<<CS00);	//64 prescaler, 4us period
-			precomputedOCR0A[i] = expTime/4;
-		}else if(expTime < 4000) {							//1000 < exp time < 4000
+			precomputedOCR0A[i] = pulseTime/4;
+		}else if(pulseTime < 4000) {						//1000 < pulseTime < 4000
 			precomputedTCCR0B[i] = (1<<CS02);				//256 prescaler, 16us period
-			precomputedOCR0A[i] = expTime/16;
-		}else {												//4000 < exp time < 10000
+			precomputedOCR0A[i] = pulseTime/16;
+		}else {												//4000 < pulseTime < 10000
 			precomputedTCCR0B[i] = (1<<CS02) | (1<<CS00);	//1024 prescaler, 64us period
-			precomputedOCR0A[i] = expTime/64;
+			precomputedOCR0A[i] = pulseTime/64;
 		}
 	}
 }
@@ -122,19 +121,19 @@ uint8_t setTimedTriggerPeriod(uint16_t period) {
 	OCR1A = period / 4;
 	if(OCR1A < 1) {
 		OCR1A = 0xFFFF/4;
-		acqSettings.triggerPeriod = 0xFFFF;
+		acqSettings.timedTriggerPeriod = 0xFFFF;
 		sei();
 		return 0;
 	}
-	acqSettings.triggerPeriod = period;
+	acqSettings.timedTriggerPeriod = period;
 	sei();
 	return 1;
 }
 
-uint8_t changeTriggerMode(uint8_t trigger) {
+uint8_t changeTriggerSource(triggerSources source) {
 	cli();
 	uint8_t retVal = 1;
-	switch(trigger) {
+	switch(source) {
 		case FREE:
 			if(PIND & (1<<2)) cameraReady = 0;	//simulate rising edge if camera is already ready
 		break;
@@ -149,13 +148,13 @@ uint8_t changeTriggerMode(uint8_t trigger) {
 			//TODO
 		break;
 		default:	//NONE or out of range
-			if(trigger >= NUM_OF_TRIGGER_TYPES)	{	//not in the list - fail
-				trigger = NONE;
+			if(source >= NUM_OF_TRIGGER_SOURCES)	{	//not in the list - fail
+				source = NONE;
 				retVal = 0;
 			}
 			TCCR1B &= ~((1<<CS10) | (1<<CS11));		//disable timed trigger
 	}
-	acqSettings.trigger = trigger;
+	acqSettings.triggerSource = source;
 	sei();
 	return retVal;
 }
@@ -170,11 +169,7 @@ uint8_t passFailBool(uint8_t val) {
 }
 
 uint8_t passFailExpRange(uint16_t val) {
-	if(val >= MIN_EXP_TIME && val <= MAX_EXP_TIME) {
-		usartAddToOutBuffer("OK");
-		return 1;
-	}
-	usartAddToOutBuffer("FAIL");
+	if(val >= MIN_EXP_TIME && val <= MAX_EXP_TIME) return 1;
 	return 0;
 }
 
@@ -184,40 +179,42 @@ void processUsart() {
 	switch(USART0.inBuffer[0]) {
 		case 'S':
 			//message[1-3] = XYZ - acronym for setting parameter
-			if(cmpString(USART0.inBuffer+1, "RGE\0")) {
-				acqSettings.rgbEnabled = USART0.inBuffer[4] - '0';
-				if(!passFailBool(acqSettings.rgbEnabled)) acqSettings.rgbEnabled = 0;
-			}else if(cmpString(USART0.inBuffer+1, "HDE\0")) {
-				acqSettings.hdrEnabled = USART0.inBuffer[4] - '0';
-				if(!passFailBool(acqSettings.hdrEnabled)) acqSettings.hdrEnabled = 0;
-			}else if(cmpString(USART0.inBuffer+1, "TRI\0")) {
-				if(changeTriggerMode(USART0.inBuffer[4] - '0')) usartAddToOutBuffer("OK");
-				else usartAddToOutBuffer("FAIL");
-			}else if(cmpString(USART0.inBuffer+1, "TWE\0")) {
-				acqSettings.triggerWidthExposure = USART0.inBuffer[4] - '0';
-				if(!passFailBool(acqSettings.triggerWidthExposure)) acqSettings.triggerWidthExposure = 0;
-			}else if(cmpString(USART0.inBuffer+1, "NRL\0")) {
-				acqSettings.noRgbLight = USART0.inBuffer[4] - '0';
-				if(!passFailBool(acqSettings.noRgbLight)) acqSettings.noRgbLight = 0;
-			}else if(cmpString(USART0.inBuffer+1, "NHE\0")) {
-				acqSettings.noHdrExposureTime = stringToInt(USART0.inBuffer+4);
-				if(!passFailExpRange(acqSettings.noHdrExposureTime)) acqSettings.noHdrExposureTime = MIN_EXP_TIME;
-				precomputeTriggerTimerParameters();
-			}else if(cmpString(USART0.inBuffer+1, "HET\0")) {
-				uint16_t *values = stringsToInts(USART0.inBuffer+4, ',');
+			if(cmpString(USART0.inBuffer+1, "PUO\0")) {	//pulse output
+				uint16_t *values = stringToInts(USART0.inBuffer+4, ',');
 				for(uint8_t i = 0; i < 0xFF; i++) {
-					acqSettings.hdrExposureTime[i] = values[i];
-					if(values[i] == 0xFFFF) break;
-					if(!passFailExpRange(values[i])) {
-						acqSettings.hdrExposureTime[i] = 0xFFFF;
+					acqSettings.pulseOutput[i] = values[i];
+					if(values[i] == 0xFFFF) {	//reached end of array successfully
+						usartAddToOutBuffer("OK");
+						break;
+					}
+					if(values[i] >= NUM_OF_PULSE_OUTPUTS) {	//value out of range
+						usartAddToOutBuffer("FAIL");
+						acqSettings.pulseOutput[i] = 0xFF;	//terminate array
 						break;
 					}
 				}
-				precomputeTriggerTimerParameters();
-			}else if(cmpString(USART0.inBuffer+1, "TPE\0")) {
+			}else if(cmpString(USART0.inBuffer+1, "PUP\0")) {	//pulse period
+				uint16_t *values = stringToInts(USART0.inBuffer+4, ',');
+				for(uint8_t i = 0; i < 0xFF; i++) {
+					acqSettings.pulsePeriod[i] = values[i];
+					if(values[i] == 0xFFFF) {	//reached end of array successfully
+						usartAddToOutBuffer("OK");
+						break;
+					}
+					if(!passFailExpRange(values[i])) {	//value out of range
+						usartAddToOutBuffer("FAIL");
+						acqSettings.pulsePeriod[i] = 0xFFFF;	//terminate array
+						break;
+					}
+				}
+				precomputePulseTimerParameters();
+			}else if(cmpString(USART0.inBuffer+1, "TRS\0")) {	//trigger source
+				if(changeTriggerSource(USART0.inBuffer[4] - '0')) usartAddToOutBuffer("OK");
+				else usartAddToOutBuffer("FAIL");
+			}else if(cmpString(USART0.inBuffer+1, "TTP\0")) {	//timed trigger period
 				if(setTimedTriggerPeriod(stringToInt(USART0.inBuffer+4))) usartAddToOutBuffer("OK");
 				else usartAddToOutBuffer("FAIL");
-			}else if(cmpString(USART0.inBuffer+1, "TPO\0")) {
+			}else if(cmpString(USART0.inBuffer+1, "HTP\0")) {	//HW trigger polarity
 				acqSettings.hwTriggerPolarity = USART0.inBuffer[4] - '0';
 				if(acqSettings.hwTriggerPolarity < NUM_OF_TRIGGER_POLARITIES) usartAddToOutBuffer("OK");
 				else {
@@ -230,29 +227,25 @@ void processUsart() {
 		break;
 		case 'G':
 			//message[1-3] = XYZ - acronym for getting parameter
-			if(cmpString(USART0.inBuffer+1, "RGE\0")) {
-				usartAddToOutBuffer(intToString(acqSettings.rgbEnabled));
-			}else if(cmpString(USART0.inBuffer+1, "HDE\0")) {
-				usartAddToOutBuffer(intToString(acqSettings.hdrEnabled));
-			}else if(cmpString(USART0.inBuffer+1, "TRI\0")) {
-				usartAddToOutBuffer(intToString(acqSettings.trigger));
-			}else if(cmpString(USART0.inBuffer+1, "TWE\0")) {
-				usartAddToOutBuffer(intToString(acqSettings.triggerWidthExposure));
-			}else if(cmpString(USART0.inBuffer+1, "NRL\0")) {
-				usartAddToOutBuffer(intToString(acqSettings.noRgbLight));
-			}else if(cmpString(USART0.inBuffer+1, "NHE\0")) {
-				usartAddToOutBuffer(intToString(acqSettings.noHdrExposureTime));
-			}else if(cmpString(USART0.inBuffer+1, "HET\0")) {
-				for(uint8_t i = 0; i < MAX_HDR_EXP_TIMES; i++) {
-					if(acqSettings.hdrExposureTime[i] == 0xFFFF) break;
-					usartAddToOutBuffer(intToString(acqSettings.hdrExposureTime[i]));
-					if(acqSettings.hdrExposureTime[i+1] != 0xFFFF) usartAddToOutBuffer(",");
+			if(cmpString(USART0.inBuffer+1, "PUO\0")) {	//pulse output
+				for(uint8_t i = 0; i < MAX_PULSE_CONFIGS; i++) {
+					if(acqSettings.pulseOutput[i] == 0xFF) break;
+					usartAddToOutBuffer(intToString(acqSettings.pulseOutput[i]));
+					if(acqSettings.pulseOutput[i+1] != 0xFF) usartAddToOutBuffer(",");
 				}
-			}else if(cmpString(USART0.inBuffer+1, "TPE\0")) {
-				usartAddToOutBuffer(intToString(acqSettings.triggerPeriod));
-			}else if(cmpString(USART0.inBuffer+1, "TPO\0")) {
+			}else if(cmpString(USART0.inBuffer+1, "PUP\0")) {	//pulse period
+				for(uint8_t i = 0; i < MAX_PULSE_CONFIGS; i++) {
+					if(acqSettings.pulsePeriod[i] == 0xFFFF) break;
+					usartAddToOutBuffer(intToString(acqSettings.pulsePeriod[i]));
+					if(acqSettings.pulsePeriod[i+1] != 0xFFFF) usartAddToOutBuffer(",");
+				}
+			}else if(cmpString(USART0.inBuffer+1, "TRS\0")) {	//trigger source
+				usartAddToOutBuffer(intToString(acqSettings.triggerSource));
+			}else if(cmpString(USART0.inBuffer+1, "TTP\0")) {	//timed trigger period
+				usartAddToOutBuffer(intToString(acqSettings.timedTriggerPeriod));
+			}else if(cmpString(USART0.inBuffer+1, "HTP\0")) {	//HW trigger polarity
 				usartAddToOutBuffer(intToString(acqSettings.hwTriggerPolarity));
-			} else usartAddToOutBuffer("UNRECOGNIZED");
+			}else usartAddToOutBuffer("UNRECOGNIZED");
 			usartAddToOutBuffer("\n\0");
 			usartSend();
 		break;
@@ -266,7 +259,7 @@ void processUsart() {
 
 int main(void) {
 	cli();
-	//timer 0 setup (trigger timer)
+	//timer 0 setup (pulse timer)
 	DDRD |= (1<<6) | (1<<5);			//OC0A, OC0B output
 	TCCR0A = (1<<WGM01) | (1<<WGM00);	//Fast PWM
 	TCCR0B = 0;							//stop the timer
@@ -275,14 +268,14 @@ int main(void) {
 	//timer 1 setup (timed trigger)
 	TCCR1B = (1<<WGM12);	//CTC mode
 	TIMSK1 = (1<<OCIE1A);	//enable COMPA interrupt
-	setTimedTriggerPeriod(acqSettings.triggerPeriod);
+	setTimedTriggerPeriod(acqSettings.timedTriggerPeriod);
 	
 	//line out 1 interrupt
 	EICRA = (1<<ISC00);		//INT0 on logical change
 	EIMSK = (1<<INT0);		//enable INT0
 	
 	usartInit();
-	precomputeTriggerTimerParameters();
+	precomputePulseTimerParameters();
 	sei();
 	
 	DDRD |= (1<<7);		//DEBUG

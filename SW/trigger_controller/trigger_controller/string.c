@@ -56,10 +56,10 @@ uint16_t stringToInt(volatile const char *str) {
 	return output;
 }
 
-uint16_t *stringsToInts(volatile const char *str, char splitMarker) {
+uint16_t *stringToInts(volatile const char *str, char splitMarker) {
 	if(stringEmpty(str)) return 0;
 	
-	#define MAX_NUM_OF_INTS MAX_HDR_EXP_TIMES
+	#define MAX_NUM_OF_INTS MAX_PULSE_CONFIGS
 	static uint16_t returnArray[MAX_NUM_OF_INTS+1];
 	uint8_t returnArrayIndex = 0;
 	
