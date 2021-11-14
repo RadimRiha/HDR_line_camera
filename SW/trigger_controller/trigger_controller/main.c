@@ -30,7 +30,7 @@ uint8_t changeTriggerSource(triggerSources source);
 
 ISR(TIMER0_COMPA_vect) {	//pulse timer end
 	TCCR0B = 0;				//stop the timer
-	if(acqSettings.pulseOutput[pulseCount] == 0xFF || pulseCount >= MAX_PULSE_CONFIGS) pulseTrainComplete = 1;
+	if(acqSettings.pulseOutput[pulseCount] == 0xFF) pulseTrainComplete = 1;
 }
 
 ISR(TIMER1_COMPA_vect) {					//timed trigger end
@@ -50,7 +50,7 @@ ISR(INT0_vect) {			//line out 1 rising/falling edge
 
 void checkCameraReadyStatus() {
 	if(PIND & (1<<2)) {		//rising edge or high level of LINE OUT 1 (line trigger wait)
-		if(!cameraReady) {	//rising edge
+		if(TCCR0B == 0) {	//pulse timer stopped (COMPA interrupt handled)
 			cameraReady = 1;
 			if(!pulseTrainComplete) startPulseTimer();	//another pulse
 			else if(acqSettings.triggerSource == FREE) startNewPulseTrain();	//FREE run mode triggering
@@ -62,6 +62,7 @@ void checkCameraReadyStatus() {
 }
 
 void startPulseTimer() {
+	//cli();
 	OCR0A = precomputedOCR0A[pulseCount];
 	uint8_t TCCR0B_val = precomputedTCCR0B[pulseCount];
 	
@@ -84,11 +85,11 @@ void startPulseTimer() {
 	pulseCount++;
 	OCR0B = OCR0A;
 	TCNT0 = 0xFF;
+	//sei();
 	TCCR0B = TCCR0B_val;	//start the timer
 }
 
 void startNewPulseTrain() {
-	if(!pulseTrainComplete || !cameraReady) return;
 	pulseTrainComplete = 0;
 	pulseCount = 0;
 	startPulseTimer();
@@ -185,6 +186,7 @@ void processUsart() {
 					acqSettings.pulseOutput[i] = values[i];
 					if(values[i] == 0xFFFF) {	//reached end of array successfully
 						usartAddToOutBuffer("OK");
+						acqSettings.pulseOutput[i] = 0xFF;	//terminate array
 						break;
 					}
 					if(values[i] >= NUM_OF_PULSE_OUTPUTS) {	//value out of range
@@ -245,6 +247,10 @@ void processUsart() {
 				usartAddToOutBuffer(intToString(acqSettings.timedTriggerPeriod));
 			}else if(cmpString(USART0.inBuffer+1, "HTP\0")) {	//HW trigger polarity
 				usartAddToOutBuffer(intToString(acqSettings.hwTriggerPolarity));
+			}else if(cmpString(USART0.inBuffer+1, "DBG\0")) {	//DEBUG
+				usartAddToOutBuffer(intToString(pulseTrainComplete));
+				usartAddToOutBuffer(intToString(pulseCount));
+				usartAddToOutBuffer(intToString(cameraReady));
 			}else usartAddToOutBuffer("UNRECOGNIZED");
 			usartAddToOutBuffer("\n\0");
 			usartSend();
