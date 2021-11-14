@@ -62,15 +62,14 @@ void checkCameraReadyStatus() {
 }
 
 void startPulseTimer() {
-	//cli();
 	OCR0A = precomputedOCR0A[pulseCount];
 	uint8_t TCCR0B_val = precomputedTCCR0B[pulseCount];
 	
 	//pulse output select
 	TCCR0A = (1<<COM0B1) | (1<<WGM01) | (1<<WGM00);	//pulse output to light
 	switch (acqSettings.pulseOutput[pulseCount]) {
-		case LINE_START:	//pulse output to camera
-			TCCR0A = (1<<COM0A1) | (1<<WGM01) | (1<<WGM00);
+		case LINE_START:
+			TCCR0A = (1<<COM0A1) | (1<<WGM01) | (1<<WGM00);	//pulse output to camera
 		break;
 		case L1:
 		break;
@@ -85,7 +84,6 @@ void startPulseTimer() {
 	pulseCount++;
 	OCR0B = OCR0A;
 	TCNT0 = 0xFF;
-	//sei();
 	TCCR0B = TCCR0B_val;	//start the timer
 }
 
@@ -153,7 +151,11 @@ uint8_t changeTriggerSource(triggerSources source) {
 				source = NONE;
 				retVal = 0;
 			}
-			TCCR1B &= ~((1<<CS10) | (1<<CS11));		//disable timed trigger
+			TCCR1B &= ~((1<<CS10) | (1<<CS11));	//disable timed trigger
+			TCCR0B = 0;	//stop pulse timer
+			pulseTrainComplete = 1;
+			TCCR0A = 0;	//release pulse timer outputs
+			PORTD &= ~((1<<6) | (1<<5));	//OC0A, OC0B output zero
 	}
 	acqSettings.triggerSource = source;
 	sei();
@@ -181,6 +183,8 @@ void processUsart() {
 		case 'S':
 			//message[1-3] = XYZ - acronym for setting parameter
 			if(cmpString(USART0.inBuffer+1, "PUO\0")) {	//pulse output
+				triggerSources triggerMem = acqSettings.triggerSource;
+				changeTriggerSource(NONE);	//disable triggering for safety
 				uint16_t *values = stringToInts(USART0.inBuffer+4, ',');
 				for(uint8_t i = 0; i < 0xFF; i++) {
 					acqSettings.pulseOutput[i] = values[i];
@@ -195,7 +199,10 @@ void processUsart() {
 						break;
 					}
 				}
+				acqSettings.triggerSource = triggerMem;	//restart previous trigger
 			}else if(cmpString(USART0.inBuffer+1, "PUP\0")) {	//pulse period
+				triggerSources triggerMem = acqSettings.triggerSource;
+				changeTriggerSource(NONE);	//disable triggering for safety
 				uint16_t *values = stringToInts(USART0.inBuffer+4, ',');
 				for(uint8_t i = 0; i < 0xFF; i++) {
 					acqSettings.pulsePeriod[i] = values[i];
@@ -210,6 +217,7 @@ void processUsart() {
 					}
 				}
 				precomputePulseTimerParameters();
+				acqSettings.triggerSource = triggerMem;	//restart previous trigger
 			}else if(cmpString(USART0.inBuffer+1, "TRS\0")) {	//trigger source
 				if(changeTriggerSource(USART0.inBuffer[4] - '0')) usartAddToOutBuffer("OK");
 				else usartAddToOutBuffer("FAIL");
