@@ -15,7 +15,7 @@ void usartInit() {
 	UBRR0 = F_CPU/(16UL*9600) - 1;		//9600 baud
 }
 
-ISR(USART_RX_vect) {
+ISR(USART0_RX_vect) {
 	if(USART0.receiveComplete) return;	//reject incoming data if the last message has not been processed yet
 	char receiveChar = UDR0;
 	USART0.inBuffer[USART0.inBufferIndex] = receiveChar;
@@ -27,7 +27,7 @@ ISR(USART_RX_vect) {
 	else USART0.inBufferIndex++;
 }
 
-ISR(USART_TX_vect) {
+ISR(USART0_TX_vect) {
 	if((USART0.outBufferIndex >= USART_BUFFER_LENGTH) || (USART0.outBuffer[USART0.outBufferIndex] == '\0')) {
 		USART0.transmitComplete = 1;
 		USART0.outBufferIndex = 0;	//new message start index reset
