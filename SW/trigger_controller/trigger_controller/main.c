@@ -6,15 +6,7 @@
 #include "USART.h"
 #include "settings.h"
 
-acquisitionSettings acqSettings = {
-	.pulseOutput[0] = 0,
-	.pulseOutput[1] = 0xFF,
-	.pulsePeriod[0] = 1000,
-	.pulsePeriod[1] = 0xFFFF,
-	.triggerSource = NONE,
-	.timedTriggerPeriod = 0xFFFF,
-	.hwTriggerPolarity = RISING,
-};
+acquisitionSettings acqSettings;
 
 uint8_t precomputedOCR0A[MAX_PULSE_CONFIGS+1];
 uint8_t precomputedTCCR0B[MAX_PULSE_CONFIGS+1];
@@ -48,6 +40,16 @@ ISR(INT0_vect) {			//line out 1 rising/falling edge
 	checkCameraReadyStatus();
 }
 
+void restoreDefaults() {
+	acqSettings.pulseOutput[0] = 0;
+	acqSettings.pulseOutput[1] = 0xFF;
+	acqSettings.pulsePeriod[0] = 1000;
+	acqSettings.pulsePeriod[1] = 0xFFFF;
+	acqSettings.triggerSource = NONE;
+	acqSettings.timedTriggerPeriod = 0xFFFF;
+	acqSettings.hwTriggerPolarity = RISING;
+}
+
 void checkCameraReadyStatus() {
 	if(PIND & (1<<2)) {		//rising edge or high level of LINE OUT 1 (line trigger wait)
 		if(TCCR0B == 0) {	//pulse timer stopped (COMPA interrupt handled)
@@ -68,7 +70,7 @@ void startPulseTimer() {
 	//pulse output select
 	TCCR0A = (1<<COM0B1) | (1<<WGM01) | (1<<WGM00);	//pulse output to light
 	switch (acqSettings.pulseOutput[pulseCount]) {
-		case LINE_START:
+		case LINE_TRIGGER:
 			TCCR0A = (1<<COM0A1) | (1<<WGM01) | (1<<WGM00);	//pulse output to camera
 		break;
 		case L1:
@@ -231,6 +233,11 @@ void processUsart() {
 					usartAddToOutBuffer("FAIL");
 					acqSettings.hwTriggerPolarity = RISING;
 				}
+			}
+			else if(cmpString(USART0.inBuffer+1, "RST\0")) {	//restore defaults
+				restoreDefaults();
+				precomputePulseTimerParameters();
+				usartAddToOutBuffer("OK");
 			}else usartAddToOutBuffer("UNRECOGNIZED");
 			usartAddToOutBuffer("\n\0");
 			usartSend();
@@ -288,6 +295,7 @@ int main(void) {
 	EICRA = (1<<ISC00);		//INT0 on logical change
 	EIMSK = (1<<INT0);		//enable INT0
 	
+	restoreDefaults();
 	usartInit();
 	precomputePulseTimerParameters();
 	sei();
