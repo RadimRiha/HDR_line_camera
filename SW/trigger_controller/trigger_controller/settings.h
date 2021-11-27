@@ -12,6 +12,7 @@ typedef enum pulseOutputs {
 	L1,
 	L2,
 	L3,
+	L_ALL,
 	NUM_OF_PULSE_OUTPUTS,		//LEAVE THIS AS LAST
 } pulseOutputs;
 

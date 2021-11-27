@@ -22764,7 +22764,7 @@ Source: www.kingbright.com</description>
 <label x="398.78" y="40.64" size="1.778" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
-<net name="RGB_IN" class="0">
+<net name="L_IN" class="0">
 <segment>
 <pinref part="IC7" gate="D" pin="I1"/>
 <wire x1="208.28" y1="38.1" x2="205.74" y2="38.1" width="0.1524" layer="91"/>
@@ -22784,7 +22784,7 @@ Source: www.kingbright.com</description>
 <label x="152.4" y="182.88" size="1.778" layer="95" xref="yes"/>
 </segment>
 </net>
-<net name="RGB_SEL0" class="0">
+<net name="L_SEL0" class="0">
 <segment>
 <pinref part="IC8" gate="A" pin="A"/>
 <wire x1="228.6" y1="55.88" x2="226.06" y2="55.88" width="0.1524" layer="91"/>
@@ -22798,7 +22798,7 @@ Source: www.kingbright.com</description>
 <label x="58.42" y="172.72" size="1.778" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
-<net name="RGB_SEL1" class="0">
+<net name="L_SEL1" class="0">
 <segment>
 <pinref part="IC8" gate="A" pin="B"/>
 <wire x1="228.6" y1="53.34" x2="226.06" y2="53.34" width="0.1524" layer="91"/>
