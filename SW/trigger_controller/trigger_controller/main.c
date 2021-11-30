@@ -40,16 +40,6 @@ ISR(INT0_vect) {			//line out 1 rising/falling edge
 	checkCameraReadyStatus();
 }
 
-void restoreDefaults() {
-	acqSettings.pulseOutput[0] = 0;
-	acqSettings.pulseOutput[1] = 0xFF;
-	acqSettings.pulsePeriod[0] = 1000;
-	acqSettings.pulsePeriod[1] = 0xFFFF;
-	acqSettings.triggerSource = NONE;
-	acqSettings.timedTriggerPeriod = 0xFFFF;
-	acqSettings.hwTriggerPolarity = RISING;
-}
-
 void checkCameraReadyStatus() {
 	if(PIND & (1<<2)) {		//rising edge or high level of LINE OUT 1 (line trigger wait)
 		if(TCCR0B == 0) {	//pulse timer stopped (COMPA interrupt handled)
@@ -69,17 +59,25 @@ void startPulseTimer() {
 	
 	//pulse output select
 	TCCR0A = (1<<COM0B1) | (1<<WGM01) | (1<<WGM00);	//pulse output to light
+	PORTC &= ~((1<<0) | (1<<1));	//clear light select
 	switch (acqSettings.pulseOutput[pulseCount]) {
 		case LINE_TRIGGER:
 			TCCR0A = (1<<COM0A1) | (1<<WGM01) | (1<<WGM00);	//pulse output to camera
 		break;
 		case L1:
+			//keep light select cleared
 		break;
 		case L2:
+			PORTC |= (1<<0);
 		break;
 		case L3:
+			PORTC |= (1<<1);
+		break;
+		case L_ALL:
+			PORTC |= (1<<0) | (1<<1);
 		break;
 		default:
+			//output to L1
 		break;
 	}
 	
@@ -114,6 +112,17 @@ void precomputePulseTimerParameters() {
 			precomputedOCR0A[i] = pulseTime/64;
 		}
 	}
+}
+
+void restoreDefaults() {
+	acqSettings.pulseOutput[0] = 0;
+	acqSettings.pulseOutput[1] = 0xFF;
+	acqSettings.pulsePeriod[0] = 1000;
+	acqSettings.pulsePeriod[1] = 0xFFFF;
+	acqSettings.triggerSource = NONE;
+	acqSettings.timedTriggerPeriod = 0xFFFF;
+	acqSettings.hwTriggerPolarity = RISING;
+	precomputePulseTimerParameters();
 }
 
 uint8_t setTimedTriggerPeriod(uint16_t period) {
@@ -236,7 +245,6 @@ void processUsart() {
 			}
 			else if(cmpString(USART0.inBuffer+1, "RST\0")) {	//restore defaults
 				restoreDefaults();
-				precomputePulseTimerParameters();
 				usartAddToOutBuffer("OK");
 			}else usartAddToOutBuffer("UNRECOGNIZED");
 			usartAddToOutBuffer("\n\0");
@@ -295,12 +303,12 @@ int main(void) {
 	EICRA = (1<<ISC00);		//INT0 on logical change
 	EIMSK = (1<<INT0);		//enable INT0
 	
+	//GPIO setup
+	DDRC |= (1<<0) | (1<<1);//light select output
+	
 	restoreDefaults();
 	usartInit();
-	precomputePulseTimerParameters();
 	sei();
-	
-	DDRD |= (1<<7);		//DEBUG
 	
     while(1) {
 		processUsart();
