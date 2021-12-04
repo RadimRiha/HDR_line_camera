@@ -42,7 +42,7 @@ ISR(INT0_vect) {			//line out 1 rising/falling edge
 
 void checkCameraReadyStatus() {
 	if(PIND & (1<<2)) {		//rising edge or high level of LINE OUT 1 (line trigger wait)
-		if(TCCR0B == 0) {	//pulse timer stopped (COMPA interrupt handled)
+		if(TCCR0B == 0 && !cameraReady) {	//pulse timer stopped (COMPA interrupt handled) and rising edge
 			cameraReady = 1;
 			if(!pulseTrainComplete) startPulseTimer();	//another pulse
 			else if(acqSettings.triggerSource == FREE) startNewPulseTrain();	//FREE run mode triggering
