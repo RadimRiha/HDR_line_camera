@@ -312,6 +312,6 @@ int main(void) {
 	
     while(1) {
 		processUsart();
-		checkCameraReadyStatus();	//check status periodically (camera can be ready at startup - does not generate rising edge interrupt)
+		//checkCameraReadyStatus();	//check status periodically (camera can be ready at startup - does not generate rising edge interrupt)
     }
 }
