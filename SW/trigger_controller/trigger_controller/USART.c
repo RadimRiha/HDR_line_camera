@@ -24,6 +24,7 @@ ISR(USART0_RX_vect) {
 		USART0.receiveComplete = 1;
 		USART0.inBufferIndex = 0;
 	}
+	else if (receiveChar == '\r') {}	//discard carriage return
 	else USART0.inBufferIndex++;
 }
 

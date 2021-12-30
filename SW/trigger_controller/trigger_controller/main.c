@@ -5,6 +5,7 @@
 #include "string.h"
 #include "USART.h"
 #include "settings.h"
+#include "EEPROM.h"
 
 acquisitionSettings acqSettings;
 
@@ -249,6 +250,7 @@ void processUsart() {
 			}else usartAddToOutBuffer("UNRECOGNIZED");
 			usartAddToOutBuffer("\n\0");
 			usartSend();
+			saveSettings();
 		break;
 		case 'G':
 			//message[1-3] = XYZ - acronym for getting parameter
@@ -306,7 +308,7 @@ int main(void) {
 	//GPIO setup
 	DDRC |= (1<<0) | (1<<1);//light select output
 	
-	restoreDefaults();
+	if(!loadSettings()) restoreDefaults();
 	usartInit();
 	sei();
 	
