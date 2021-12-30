@@ -62,7 +62,7 @@ void startPulseTimer() {
 	TCCR0A = (1<<COM0B1) | (1<<WGM01) | (1<<WGM00);	//pulse output to light
 	PORTC &= ~((1<<0) | (1<<1));	//clear light select
 	switch (acqSettings.pulseOutput[pulseCount]) {
-		case LINE_TRIGGER:
+		case T:
 			TCCR0A = (1<<COM0A1) | (1<<WGM01) | (1<<WGM00);	//pulse output to camera
 		break;
 		case L1:
@@ -76,6 +76,22 @@ void startPulseTimer() {
 		break;
 		case L_ALL:
 			PORTC |= (1<<0) | (1<<1);
+		break;
+		case L1T:
+			//keep light select cleared
+			TCCR0A |= (1<<COM0A1);	//pulse output to camera and light
+		break;
+		case L2T:
+			PORTC |= (1<<0);
+			TCCR0A |= (1<<COM0A1);
+		break;
+		case L3T:
+			PORTC |= (1<<1);
+			TCCR0A |= (1<<COM0A1);
+		break;
+		case LT_ALL:
+			PORTC |= (1<<0) | (1<<1);
+			TCCR0A |= (1<<COM0A1);
 		break;
 		default:
 			//output to L1

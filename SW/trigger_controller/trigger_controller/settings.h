@@ -8,11 +8,15 @@
 #define MAX_EXP_TIME 10000
 
 typedef enum pulseOutputs {
-	LINE_TRIGGER,
+	T,
 	L1,
 	L2,
 	L3,
 	L_ALL,
+	L1T,
+	L2T,
+	L3T,
+	LT_ALL,
 	NUM_OF_PULSE_OUTPUTS,		//LEAVE THIS AS LAST
 } pulseOutputs;
 
