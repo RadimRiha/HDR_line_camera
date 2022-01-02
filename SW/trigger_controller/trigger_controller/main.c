@@ -117,16 +117,16 @@ void precomputePulseTimerParameters() {
 		pulseTime = acqSettings.pulsePeriod[i];
 		if(pulseTime < 125) {								//pulseTime < 125
 			precomputedTCCR0B[i] = (1<<CS01);				//8 prescaler, 0.5us period
-			precomputedOCR0A[i] = pulseTime*2;
+			precomputedOCR0A[i] = pulseTime*2-1;
 		}else if(pulseTime < 1000) {						//125 < pulseTime < 1000
 			precomputedTCCR0B[i] = (1<<CS01) | (1<<CS00);	//64 prescaler, 4us period
-			precomputedOCR0A[i] = pulseTime/4;
+			precomputedOCR0A[i] = pulseTime/4-1;
 		}else if(pulseTime < 4000) {						//1000 < pulseTime < 4000
 			precomputedTCCR0B[i] = (1<<CS02);				//256 prescaler, 16us period
-			precomputedOCR0A[i] = pulseTime/16;
+			precomputedOCR0A[i] = pulseTime/16-1;
 		}else {												//4000 < pulseTime < 10000
 			precomputedTCCR0B[i] = (1<<CS02) | (1<<CS00);	//1024 prescaler, 64us period
-			precomputedOCR0A[i] = pulseTime/64;
+			precomputedOCR0A[i] = pulseTime/64-1;
 		}
 	}
 }
