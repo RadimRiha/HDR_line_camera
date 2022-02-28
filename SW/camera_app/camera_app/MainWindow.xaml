@@ -1,0 +1,16 @@
+﻿<Window x:Class="camera_app.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:camera_app"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800" Loaded="Window_Loaded">
+    <Grid>
+        <ComboBox x:Name="DeviceSelect" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="391"/>
+        <Button x:Name="DeviceSelectButton" Content="select device" HorizontalAlignment="Left" Margin="406,10,0,0" VerticalAlignment="Top" Width="89" Height="22" Click="DeviceSelectButton_Click"/>
+        <Button x:Name="StartAcquisition" Content="▶" HorizontalAlignment="Center" Margin="557,67,195,312" VerticalAlignment="Center" Width="40" Height="40" FontSize="20" Click="StartAcquisition_Click"/>
+        <Button x:Name="StopAcquisition" Content="■" HorizontalAlignment="Left" Margin="645,67,0,0" VerticalAlignment="Top" Width="40" Height="40" FontSize="20" Click="StopAcquisition_Click"/>
+
+    </Grid>
+</Window>
