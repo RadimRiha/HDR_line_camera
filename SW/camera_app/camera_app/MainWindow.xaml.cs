@@ -22,6 +22,7 @@ namespace camera_app
     public partial class MainWindow : Window
     {
         public static Label OutLabelInstance;
+        private static bool loaded = false;
         private void refreshDevices()
         {
             DeviceSelect.Items.Clear();
@@ -41,6 +42,7 @@ namespace camera_app
         {
             OutLabelInstance = OutLabel;
             refreshDevices();
+            loaded = true;
         }
 
         private void DeviceSelectButton_Click(object sender, RoutedEventArgs e)
@@ -74,7 +76,11 @@ namespace camera_app
 
         private void WidthSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-
+            if (!loaded) return;
+            WidthBox.Text = WidthSlider.Value.ToString();
+            long maxOffset = CameraConfig.MaxWidth - Convert.ToInt64(WidthSlider.Value);
+            XOffsetSlider.Maximum = maxOffset;
+            XOffsetBox.Text = XOffsetSlider.Value.ToString();
         }
 
         private void HeightSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -84,12 +90,23 @@ namespace camera_app
 
         private void XOffsetSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-
+            XOffsetBox.Text = XOffsetSlider.Value.ToString();
+            long maxWidth = CameraConfig.MaxWidth - Convert.ToInt64(XOffsetSlider.Value);
+            WidthSlider.Maximum = maxWidth;
+            WidthBox.Text = WidthSlider.Value.ToString();
         }
 
         private void WidthBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-
+            if (e.Key == Key.Enter)
+            {
+                long val;
+                try { val = long.Parse(WidthBox.Text); }
+                catch { val = 1; }
+                if (val > WidthSlider.Maximum) val = Convert.ToInt64(WidthSlider.Maximum);
+                if (val < 1) val = 1;
+                WidthSlider.Value = val;
+            }
         }
 
         private void HeightBox_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -97,18 +114,24 @@ namespace camera_app
             if (e.Key == Key.Enter)
             {
                 long val;
-                try
-                {
-                    val = long.Parse(HeightBox.Text);
-                }
-                catch
-                {
-                    val = 1;
-                }
+                try { val = long.Parse(HeightBox.Text); }
+                catch { val = 1; }
                 if (val > CameraConfig.MaxHeight) val = CameraConfig.MaxHeight;
                 if (val < 1) val = 1;
                 HeightSlider.Value = val;
-                HeightBox.Text = val.ToString();
+            }
+        }
+
+        private void XOffsetBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                long val;
+                try { val = long.Parse(XOffsetBox.Text); }
+                catch { val = 0; }
+                if (val > XOffsetSlider.Maximum) val = Convert.ToInt64(XOffsetSlider.Maximum);
+                if (val < 0) val = 0;
+                XOffsetSlider.Value = val;
             }
         }
     }

@@ -22,13 +22,13 @@
         </Grid.ColumnDefinitions>
         <ComboBox x:Name="DeviceSelect" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="391" Grid.ColumnSpan="4" Height="22"/>
         <Button x:Name="DeviceSelectButton" Content="select device" HorizontalAlignment="Left" Margin="279,8,0,0" VerticalAlignment="Top" Width="89" Height="22" Click="DeviceSelectButton_Click" Grid.Column="3"/>
-        <Button x:Name="StartAcquisition" Content="▶" HorizontalContentAlignment="Center" Margin="85,80,370,172" VerticalContentAlignment="Center" FontSize="20" Click="StartAcquisition_Click" Grid.Column="3" Grid.Row="4"/>
-        <Button x:Name="StopAcquisition" Content="■" HorizontalContentAlignment="Center" Margin="191,46,290,208" VerticalContentAlignment="Center" FontSize="20" Click="StopAcquisition_Click" Grid.Column="3" Grid.Row="4"/>
+        <Button x:Name="StartAcquisition" Content="▶" HorizontalContentAlignment="Center" Margin="59,59,442,193" VerticalContentAlignment="Center" FontSize="20" Click="StartAcquisition_Click" Grid.Column="3" Grid.Row="4"/>
+        <Button x:Name="StopAcquisition" Content="■" HorizontalContentAlignment="Center" Margin="270,28,239,225" VerticalContentAlignment="Center" FontSize="20" Click="StopAcquisition_Click" Grid.Column="3" Grid.Row="4"/>
         <Label x:Name="OutLabel" Content="Label" HorizontalAlignment="Left" Margin="228,114,0,0" VerticalAlignment="Top" Height="53" Width="93" Grid.Column="3" Grid.Row="4"/>
         <Button x:Name="Refresh" Content="↻" HorizontalAlignment="Left" Margin="213,10,0,0" VerticalAlignment="Top" Width="22" Height="22" Click="Refresh_Click" Grid.Column="3"/>
         <TextBox x:Name="WidthBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="1" TextWrapping="Wrap" Text="1" PreviewKeyDown="WidthBox_PreviewKeyDown"/>
         <TextBox x:Name="HeightBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="2" TextWrapping="Wrap" Text="1" PreviewKeyDown="HeightBox_PreviewKeyDown"/>
-        <TextBox x:Name="XOffsetBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="3" TextWrapping="Wrap" Text="0"/>
+        <TextBox x:Name="XOffsetBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="3" TextWrapping="Wrap" Text="0" PreviewKeyDown="XOffsetBox_PreviewKeyDown"/>
         <Slider x:Name="WidthSlider" IsSnapToTickEnabled="True" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" RenderTransformOrigin="0.5,0.5" Grid.Row="1" Grid.Column="1" ValueChanged="WidthSlider_ValueChanged" TickPlacement="Both" Maximum="1" Minimum="1"/>
         <Label Content="Width" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Row="1"/>
         <Slider x:Name="HeightSlider" IsSnapToTickEnabled="True" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" RenderTransformOrigin="0.5,0.5" Grid.Row="2" Grid.Column="1" ValueChanged="HeightSlider_ValueChanged" SmallChange="1" TickPlacement="Both" Minimum="1" Maximum="1"/>
