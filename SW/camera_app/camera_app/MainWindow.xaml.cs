@@ -29,8 +29,25 @@ namespace camera_app
             List<ICameraInfo> cameras = CameraFinder.Enumerate();
             foreach (ICameraInfo camera in cameras)
             {
-                DeviceSelect.Items.Add(camera.GetValueOrDefault("FriendlyName", "property not found"));
+                string name = camera.GetValueOrDefault("FriendlyName", "property not found");
+                int addedItem = DeviceSelect.Items.Add(name);
+                if (name.Contains(CameraConfig.CameraSerialNumber) && CameraConfig.CameraSerialNumber != "")
+                {
+                    DeviceSelect.SelectedIndex = addedItem;
+                }
             }
+        }
+        private void enableControls(bool enabled)
+        {
+            WidthSlider.IsEnabled = enabled;
+            WidthBox.IsEnabled = enabled;
+            HeightSlider.IsEnabled = enabled;
+            HeightBox.IsEnabled = enabled;
+            XOffsetSlider.IsEnabled = enabled;
+            XOffsetBox.IsEnabled = enabled;
+            CenterXCheck.IsEnabled = enabled;
+            StartAcquisition.IsEnabled = enabled;
+            StopAcquisition.IsEnabled = enabled;
         }
 
         public MainWindow()
@@ -41,26 +58,34 @@ namespace camera_app
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             OutLabelInstance = OutLabel;
-            refreshDevices();
             loaded = true;
+            enableControls(false);
+            refreshDevices();
         }
 
         private void DeviceSelectButton_Click(object sender, RoutedEventArgs e)
         {
-            if (DeviceSelect.SelectedItem != null) CameraConfig.SetModel(DeviceSelect.SelectedItem.ToString());
-            WidthSlider.Maximum = CameraConfig.MaxWidth;
-            HeightSlider.Maximum = CameraConfig.MaxHeight;
-            XOffsetSlider.Maximum = 0;
-            WidthSlider.Value = CameraConfig.MaxWidth;
-            HeightSlider.Value = CameraConfig.DEFAULT_HEIGHT;
-            XOffsetSlider.Value = 0;
-            WidthBox.Text = WidthSlider.Value.ToString();
-            HeightBox.Text = HeightSlider.Value.ToString();
-            XOffsetBox.Text = XOffsetSlider.Value.ToString();
+            if (DeviceSelect.SelectedItem != null)
+            {
+                if (CameraConfig.SetModel(DeviceSelect.SelectedItem.ToString()))
+                {
+                    WidthSlider.Maximum = CameraConfig.MaxWidth;
+                    HeightSlider.Maximum = CameraConfig.MaxHeight;
+                    XOffsetSlider.Maximum = 0;
+                    WidthSlider.Value = CameraConfig.MaxWidth;
+                    HeightSlider.Value = CameraConfig.DEFAULT_HEIGHT;
+                    XOffsetSlider.Value = 0;
+                    WidthBox.Text = WidthSlider.Value.ToString();
+                    HeightBox.Text = HeightSlider.Value.ToString();
+                    XOffsetBox.Text = XOffsetSlider.Value.ToString();
+                    enableControls(true);
+                }
+            }
         }
 
         private void StartAcquisition_Click(object sender, RoutedEventArgs e)
         {
+            CameraConfig.UpdateParams(Convert.ToInt64(WidthSlider.Value), Convert.ToInt64(HeightSlider.Value), Convert.ToInt64(XOffsetSlider.Value));
             AcquisitionHandler.Start();
         }
 
@@ -81,6 +106,7 @@ namespace camera_app
             long maxOffset = CameraConfig.MaxWidth - Convert.ToInt64(WidthSlider.Value);
             XOffsetSlider.Maximum = maxOffset;
             XOffsetBox.Text = XOffsetSlider.Value.ToString();
+            if (CenterXCheck.IsChecked ?? false) XOffsetSlider.Value = maxOffset / 2;
         }
 
         private void HeightSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -132,6 +158,22 @@ namespace camera_app
                 if (val > XOffsetSlider.Maximum) val = Convert.ToInt64(XOffsetSlider.Maximum);
                 if (val < 0) val = 0;
                 XOffsetSlider.Value = val;
+            }
+        }
+
+        private void CenterXCheck_Click(object sender, RoutedEventArgs e)
+        {
+            if(CenterXCheck.IsChecked ?? false)
+            {
+                XOffsetSlider.IsEnabled = false;
+                XOffsetBox.IsEnabled = false;
+                //WidthSlider.RaiseEvent(new RoutedPropertyChangedEventArgs<double>(0,WidthSlider.Value));
+                WidthSlider_ValueChanged(new object(), new RoutedPropertyChangedEventArgs<double>(0,1));
+            }
+            else
+            {
+                XOffsetSlider.IsEnabled = true;
+                XOffsetBox.IsEnabled = true;
             }
         }
     }
