@@ -50,6 +50,16 @@ namespace camera_app
             StopAcquisition.IsEnabled = enabled;
         }
 
+        private long evalTextInRange(string text, long min, long max)
+        {
+            long val;
+            try { val = long.Parse(text); }
+            catch { val = min; }
+            if (val > max) val = max;
+            if (val < min) val = min;
+            return val;
+        }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -125,41 +135,32 @@ namespace camera_app
 
         private void WidthBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter)
-            {
-                long val;
-                try { val = long.Parse(WidthBox.Text); }
-                catch { val = 1; }
-                if (val > WidthSlider.Maximum) val = Convert.ToInt64(WidthSlider.Maximum);
-                if (val < 1) val = 1;
-                WidthSlider.Value = val;
-            }
+            if (e.Key == Key.Enter) WidthBox_LostFocus(new object(), new RoutedEventArgs());
+        }
+
+        private void WidthBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            WidthSlider.Value = evalTextInRange(WidthBox.Text, 1, Convert.ToInt64(WidthSlider.Maximum));
         }
 
         private void HeightBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter)
-            {
-                long val;
-                try { val = long.Parse(HeightBox.Text); }
-                catch { val = 1; }
-                if (val > CameraConfig.MaxHeight) val = CameraConfig.MaxHeight;
-                if (val < 1) val = 1;
-                HeightSlider.Value = val;
-            }
+            if (e.Key == Key.Enter) HeightBox_LostFocus(new object(), new RoutedEventArgs());
+        }
+
+        private void HeightBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            HeightSlider.Value = evalTextInRange(HeightBox.Text, 1, CameraConfig.MaxHeight);
         }
 
         private void XOffsetBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter)
-            {
-                long val;
-                try { val = long.Parse(XOffsetBox.Text); }
-                catch { val = 0; }
-                if (val > XOffsetSlider.Maximum) val = Convert.ToInt64(XOffsetSlider.Maximum);
-                if (val < 0) val = 0;
-                XOffsetSlider.Value = val;
-            }
+            if (e.Key == Key.Enter) XOffsetBox_LostFocus(new object(), new RoutedEventArgs());
+        }
+
+        private void XOffsetBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            XOffsetSlider.Value = evalTextInRange(HeightBox.Text, 0, Convert.ToInt64(XOffsetSlider.Maximum));
         }
 
         private void CenterXCheck_Click(object sender, RoutedEventArgs e)
@@ -168,7 +169,6 @@ namespace camera_app
             {
                 XOffsetSlider.IsEnabled = false;
                 XOffsetBox.IsEnabled = false;
-                //WidthSlider.RaiseEvent(new RoutedPropertyChangedEventArgs<double>(0,WidthSlider.Value));
                 WidthSlider_ValueChanged(new object(), new RoutedPropertyChangedEventArgs<double>(0,1));
             }
             else
@@ -176,6 +176,45 @@ namespace camera_app
                 XOffsetSlider.IsEnabled = true;
                 XOffsetBox.IsEnabled = true;
             }
+        }
+
+        private void SearchControllerButton_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void TriggerPeriodBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter) TriggerPeriodBox_LostFocus(new object(), new RoutedEventArgs());
+        }
+
+        private void TriggerPeriodBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            TriggerPeriodBox.Text = evalTextInRange(TriggerPeriodBox.Text, 4, 0xffff).ToString();
+        }
+
+        private void NumberOfPulsesBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter) NumberOfPulsesBox_LostFocus(new object(), new RoutedEventArgs());
+        }
+
+        private void NumberOfPulsesBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            long numOfPulses = evalTextInRange(NumberOfPulsesBox.Text, 1, 10);
+            NumberOfPulsesBox.Text = numOfPulses.ToString();
+            PulseConfigSelect.Items.Clear();
+            for (uint i = 1; i <= numOfPulses; i++) PulseConfigSelect.Items.Add(i);
+            PulseConfigSelect.SelectedIndex = 0;
+        }
+
+        private void PulsePriodBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter) PulsePriodBox_LostFocus(new object(), new RoutedEventArgs());
+        }
+        
+        private void PulsePriodBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            PulsePriodBox.Text = evalTextInRange(PulsePriodBox.Text, 2, 10000).ToString();
         }
     }
 }
