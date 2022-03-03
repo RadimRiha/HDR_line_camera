@@ -30,10 +30,10 @@ namespace camera_app
             foreach (ICameraInfo camera in cameras)
             {
                 string name = camera.GetValueOrDefault("FriendlyName", "property not found");
-                int addedItem = DeviceSelect.Items.Add(name);
+                int addedItemIndex = DeviceSelect.Items.Add(name);
                 if (name.Contains(CameraConfig.CameraSerialNumber) && CameraConfig.CameraSerialNumber != "")
                 {
-                    DeviceSelect.SelectedIndex = addedItem;
+                    DeviceSelect.SelectedIndex = addedItemIndex;
                 }
             }
         }
@@ -65,6 +65,7 @@ namespace camera_app
 
         private void DeviceSelectButton_Click(object sender, RoutedEventArgs e)
         {
+            enableControls(false);
             if (DeviceSelect.SelectedItem != null)
             {
                 if (CameraConfig.SetModel(DeviceSelect.SelectedItem.ToString()))
