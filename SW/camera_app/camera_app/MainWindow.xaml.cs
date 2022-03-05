@@ -37,7 +37,7 @@ namespace camera_app
                 }
             }
         }
-        private void enableControls(bool enabled)
+        private void enableCameraControls(bool enabled)
         {
             WidthSlider.IsEnabled = enabled;
             WidthBox.IsEnabled = enabled;
@@ -48,6 +48,18 @@ namespace camera_app
             CenterXCheck.IsEnabled = enabled;
             StartAcquisition.IsEnabled = enabled;
             StopAcquisition.IsEnabled = enabled;
+        }
+
+        private void enableControllerControls(bool enabled)
+        {
+            ControllerConnectedCheck.IsChecked = enabled;
+            TriggerSource.IsEnabled = enabled;
+            TriggerPeriodBox.IsEnabled = enabled;
+            TriggerPolarity.IsEnabled = enabled;
+            NumberOfPulsesBox.IsEnabled = enabled;
+            PulseConfigSelect.IsEnabled = enabled;
+            PulseOutput.IsEnabled = enabled;
+            PulsePeriodBox.IsEnabled = enabled;
         }
 
         private long evalTextInRange(string text, long min, long max)
@@ -69,34 +81,34 @@ namespace camera_app
         {
             OutLabelInstance = OutLabel;
             loaded = true;
-            enableControls(false);
+            enableCameraControls(false);
+            enableControllerControls(false);
             refreshDevices();
         }
 
         private void DeviceSelectButton_Click(object sender, RoutedEventArgs e)
         {
-            enableControls(false);
+            enableCameraControls(false);
             if (DeviceSelect.SelectedItem != null)
             {
                 if (CameraConfig.SetModel(DeviceSelect.SelectedItem.ToString()))
                 {
-                    WidthSlider.Maximum = CameraConfig.MaxWidth;
+                    WidthSlider.Maximum = CameraConfig.OrigWidth;
+                    WidthSlider.Value = CameraConfig.OrigWidth;
+                    WidthSlider_ValueChanged(new object(), new RoutedPropertyChangedEventArgs<double>(0, 1));
                     HeightSlider.Maximum = CameraConfig.MaxHeight;
-                    XOffsetSlider.Maximum = 0;
-                    WidthSlider.Value = CameraConfig.MaxWidth;
-                    HeightSlider.Value = CameraConfig.DEFAULT_HEIGHT;
-                    XOffsetSlider.Value = 0;
-                    WidthBox.Text = WidthSlider.Value.ToString();
-                    HeightBox.Text = HeightSlider.Value.ToString();
-                    XOffsetBox.Text = XOffsetSlider.Value.ToString();
-                    enableControls(true);
+                    HeightSlider.Value = CameraConfig.OrigHeight;
+                    XOffsetSlider.Value = CameraConfig.OrigXOffset;
+                    XOffsetSlider_ValueChanged(new object(), new RoutedPropertyChangedEventArgs<double>(0, 1));
+                    enableCameraControls(true);
                 }
             }
         }
 
         private void StartAcquisition_Click(object sender, RoutedEventArgs e)
         {
-            CameraConfig.UpdateParams(Convert.ToInt64(WidthSlider.Value), Convert.ToInt64(HeightSlider.Value), Convert.ToInt64(XOffsetSlider.Value));
+            CameraConfig.Config(Convert.ToInt64(WidthSlider.Value), Convert.ToInt64(HeightSlider.Value), Convert.ToInt64(XOffsetSlider.Value));
+            ControllerConfig.Config();
             AcquisitionHandler.Start();
         }
 
@@ -165,11 +177,11 @@ namespace camera_app
 
         private void CenterXCheck_Click(object sender, RoutedEventArgs e)
         {
-            if(CenterXCheck.IsChecked ?? false)
+            if (CenterXCheck.IsChecked ?? false)
             {
                 XOffsetSlider.IsEnabled = false;
                 XOffsetBox.IsEnabled = false;
-                WidthSlider_ValueChanged(new object(), new RoutedPropertyChangedEventArgs<double>(0,1));
+                WidthSlider_ValueChanged(new object(), new RoutedPropertyChangedEventArgs<double>(0, 1));
             }
             else
             {
@@ -180,7 +192,11 @@ namespace camera_app
 
         private void SearchControllerButton_Click(object sender, RoutedEventArgs e)
         {
-
+            enableControllerControls(ControllerConfig.Search());
+            TriggerSource.SelectedIndex = Convert.ToInt32(evalTextInRange(ControllerConfig.GetResponse("GTRS"), 0, ControllerConfig.MaxTriggerSource));
+            TriggerPeriodBox.Text = evalTextInRange(ControllerConfig.GetResponse("GTTP"), ControllerConfig.MinTimedTriggerPeriod, ControllerConfig.MaxTimedTriggerPeriod).ToString();
+            TriggerPolarity.SelectedIndex = Convert.ToInt32(evalTextInRange(ControllerConfig.GetResponse("GHTP"), 0, ControllerConfig.MaxTriggerPolarity));
+            // TODO the rest of the config load
         }
 
         private void TriggerPeriodBox_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -190,7 +206,7 @@ namespace camera_app
 
         private void TriggerPeriodBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            TriggerPeriodBox.Text = evalTextInRange(TriggerPeriodBox.Text, 4, 0xffff).ToString();
+            TriggerPeriodBox.Text = evalTextInRange(TriggerPeriodBox.Text, ControllerConfig.MinTimedTriggerPeriod, ControllerConfig.MaxTimedTriggerPeriod).ToString();
         }
 
         private void NumberOfPulsesBox_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -200,21 +216,27 @@ namespace camera_app
 
         private void NumberOfPulsesBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            long numOfPulses = evalTextInRange(NumberOfPulsesBox.Text, 1, 10);
+            long numOfPulses = evalTextInRange(NumberOfPulsesBox.Text, 1, ControllerConfig.MaxNumPulses);
             NumberOfPulsesBox.Text = numOfPulses.ToString();
             PulseConfigSelect.Items.Clear();
             for (uint i = 1; i <= numOfPulses; i++) PulseConfigSelect.Items.Add(i);
             PulseConfigSelect.SelectedIndex = 0;
         }
 
-        private void PulsePriodBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        private void PulsePeriodBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter) PulsePriodBox_LostFocus(new object(), new RoutedEventArgs());
+            if (e.Key == Key.Enter) PulsePeriodBox_LostFocus(new object(), new RoutedEventArgs());
         }
-        
-        private void PulsePriodBox_LostFocus(object sender, RoutedEventArgs e)
+
+        private void PulsePeriodBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            PulsePriodBox.Text = evalTextInRange(PulsePriodBox.Text, 2, 10000).ToString();
+            PulsePeriodBox.Text = evalTextInRange(PulsePeriodBox.Text, CameraConfig.MinExposure, CameraConfig.MaxExposure).ToString();
+            ControllerConfig.PulsePeriod[PulseConfigSelect.SelectedIndex] = long.Parse(PulsePeriodBox.Text);
+        }
+
+        private void PulseOutput_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ControllerConfig.PulseOutput[PulseConfigSelect.SelectedIndex] = PulseOutput.SelectedIndex;
         }
     }
 }

@@ -9,7 +9,8 @@ namespace camera_app
 {
 	static class CameraConfig
     {
-		public const long DEFAULT_HEIGHT = 256;
+		static public readonly long MinExposure = 2;
+		static public readonly long MaxExposure = 10000;
 
 		static readonly string[] supportedCameras = {
 		"Basler raL6144-16gm"
@@ -18,6 +19,9 @@ namespace camera_app
 		public static string CameraSerialNumber = "";
 		public static long MaxWidth = 0;
 		public static long MaxHeight = 0;
+		static public long OrigWidth = 1;
+		static public long OrigHeight = 1;
+		static public long OrigXOffset = 0;
 
 		public static bool SetModel(string camera)
 		{
@@ -33,17 +37,24 @@ namespace camera_app
 			using (Camera camera = new Camera(CameraSerialNumber))
 			{
 				camera.Open();
+				OrigWidth = camera.Parameters[PLCamera.Width].GetValue();
+				OrigHeight = camera.Parameters[PLCamera.Height].GetValue();
+				OrigXOffset = camera.Parameters[PLCamera.OffsetX].GetValue();
+				// config necessary to get max vals
+				camera.Parameters[PLCamera.Height].TrySetValue(256, IntegerValueCorrection.Nearest);
 				camera.Parameters[PLCamera.OffsetX].TrySetValue(0, IntegerValueCorrection.Nearest);
-				camera.Parameters[PLCamera.Height].TrySetValue(DEFAULT_HEIGHT, IntegerValueCorrection.Nearest);
 				MaxWidth = camera.Parameters[PLCamera.Width].GetMaximum();
 				MaxHeight = camera.Parameters[PLCamera.Height].GetMaximum();
-				camera.Parameters[PLCamera.Width].TrySetValue(MaxWidth, IntegerValueCorrection.Nearest);
+				// restore original settings
+				camera.Parameters[PLCamera.Height].TrySetValue(OrigHeight, IntegerValueCorrection.Nearest);
+				camera.Parameters[PLCamera.OffsetX].TrySetValue(OrigXOffset, IntegerValueCorrection.Nearest);
+				// increase packet size
 				camera.Parameters[PLCamera.GevSCPSPacketSize].TrySetValue(MaxWidth);
 				camera.Close();
 			}
 		}
 
-		public static bool UpdateParams(long FrameWidth, long FrameHeight, long XOffset)
+		public static bool Config(long FrameWidth, long FrameHeight, long XOffset)
 		{
 			using (Camera camera = new Camera(CameraSerialNumber))
 			{
