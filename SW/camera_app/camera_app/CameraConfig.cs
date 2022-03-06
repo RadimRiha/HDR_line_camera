@@ -54,16 +54,16 @@ namespace camera_app
 			}
 		}
 
-		public static bool Config(long FrameWidth, long FrameHeight, long XOffset)
+		public static bool UploadConfig(long frameWidth, long frameHeight, long XOffset)
 		{
 			using (Camera camera = new Camera(CameraSerialNumber))
 			{
 				bool success = true;
 				camera.Open();
-				success &= camera.Parameters[PLCamera.Width].TrySetValue(FrameWidth, IntegerValueCorrection.Nearest);
-				success &= camera.Parameters[PLCamera.Height].TrySetValue(FrameHeight, IntegerValueCorrection.Nearest);
+				success &= camera.Parameters[PLCamera.Width].TrySetValue(frameWidth, IntegerValueCorrection.Nearest);
+				success &= camera.Parameters[PLCamera.Height].TrySetValue(frameHeight, IntegerValueCorrection.Nearest);
 				success &= camera.Parameters[PLCamera.OffsetX].TrySetValue(XOffset, IntegerValueCorrection.Nearest);
-
+				//config for hardware pulse exposure mode
 				success &= camera.Parameters[PLCamera.TriggerSelector].TrySetValue(PLCamera.TriggerSelector.LineStart);
 				success &= camera.Parameters[PLCamera.TriggerMode].TrySetValue(PLCamera.TriggerMode.On);
 				success &= camera.Parameters[PLCamera.ExposureMode].TrySetValue(PLCamera.ExposureMode.TriggerWidth);

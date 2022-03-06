@@ -30,11 +30,11 @@ namespace camera_app
                             if (grabResult.GrabSucceeded)
                             {
                                 byte[] buffer = grabResult.PixelData as byte[];
-                                MainWindow.OutLabelInstance.Content = MainWindow.OutLabelInstance.Content + "Gray value of first pixel: " + buffer[0] + "\n";
+                                //MainWindow.OutLabelInstance.Content = MainWindow.OutLabelInstance.Content + "Gray value of first pixel: " + buffer[0] + "\n";
                             }
                             else
                             {
-                                MainWindow.OutLabelInstance.Content = MainWindow.OutLabelInstance.Content + "error\n";
+                                //MainWindow.OutLabelInstance.Content = MainWindow.OutLabelInstance.Content + "error\n";
                             }
                         }
                     }
@@ -42,7 +42,7 @@ namespace camera_app
                     camera.Close();
                 }
             }
-            catch (Exception e)
+            catch
             {
                 
             }

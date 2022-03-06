@@ -21,7 +21,6 @@ namespace camera_app
     /// </summary>
     public partial class MainWindow : Window
     {
-        public static Label OutLabelInstance;
         private static bool loaded = false;
         private void refreshDevices()
         {
@@ -72,6 +71,13 @@ namespace camera_app
             return val;
         }
 
+        private void outputText(string text)
+        {
+            OutBox.AppendText(text);
+            OutBox.AppendText("\u2028");
+            OutBox.ScrollToEnd();
+        }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -79,7 +85,6 @@ namespace camera_app
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            OutLabelInstance = OutLabel;
             loaded = true;
             enableCameraControls(false);
             enableControllerControls(false);
@@ -89,26 +94,43 @@ namespace camera_app
         private void DeviceSelectButton_Click(object sender, RoutedEventArgs e)
         {
             enableCameraControls(false);
-            if (DeviceSelect.SelectedItem != null)
+            if (DeviceSelect.SelectedItem == null)
             {
-                if (CameraConfig.SetModel(DeviceSelect.SelectedItem.ToString()))
-                {
-                    WidthSlider.Maximum = CameraConfig.OrigWidth;
-                    WidthSlider.Value = CameraConfig.OrigWidth;
-                    WidthSlider_ValueChanged(new object(), new RoutedPropertyChangedEventArgs<double>(0, 1));
-                    HeightSlider.Maximum = CameraConfig.MaxHeight;
-                    HeightSlider.Value = CameraConfig.OrigHeight;
-                    XOffsetSlider.Value = CameraConfig.OrigXOffset;
-                    XOffsetSlider_ValueChanged(new object(), new RoutedPropertyChangedEventArgs<double>(0, 1));
-                    enableCameraControls(true);
-                }
+                outputText("Camera initialization FAIL");
+                return;
             }
+            if (!CameraConfig.SetModel(DeviceSelect.SelectedItem.ToString()))
+            {
+                outputText("Camera initialization FAIL");
+                return;
+            }
+            WidthSlider.Maximum = CameraConfig.OrigWidth;
+            WidthSlider.Value = CameraConfig.OrigWidth;
+            WidthSlider_ValueChanged(new object(), new RoutedPropertyChangedEventArgs<double>(0, 1));
+            HeightSlider.Maximum = CameraConfig.MaxHeight;
+            HeightSlider.Value = CameraConfig.OrigHeight;
+            XOffsetSlider.Value = CameraConfig.OrigXOffset;
+            XOffsetSlider_ValueChanged(new object(), new RoutedPropertyChangedEventArgs<double>(0, 1));
+            enableCameraControls(true);
+            outputText("Camera initialization OK");
         }
 
         private void StartAcquisition_Click(object sender, RoutedEventArgs e)
         {
-            CameraConfig.Config(Convert.ToInt64(WidthSlider.Value), Convert.ToInt64(HeightSlider.Value), Convert.ToInt64(XOffsetSlider.Value));
-            ControllerConfig.Config();
+            if (!CameraConfig.UploadConfig(Convert.ToInt64(WidthSlider.Value), Convert.ToInt64(HeightSlider.Value), Convert.ToInt64(XOffsetSlider.Value)))
+            {
+                outputText("Camera configuration FAIL");
+                return;
+            }
+            else outputText("Camera configuration OK");
+            if (!ControllerConfig.UploadConfig((uint)TriggerSource.SelectedIndex, Convert.ToUInt16(TriggerPeriodBox.Text), (uint)TriggerPolarity.SelectedIndex))
+            {
+                outputText("Controller configuration FAIL");
+                return;
+            }
+            else outputText("Controller configuration OK");
+            enableCameraControls(false);
+            enableControllerControls(false);
             AcquisitionHandler.Start();
         }
 
@@ -192,11 +214,23 @@ namespace camera_app
 
         private void SearchControllerButton_Click(object sender, RoutedEventArgs e)
         {
-            enableControllerControls(ControllerConfig.Search());
+            enableControllerControls(false);
+            if (!ControllerConfig.Search())
+            {
+                outputText("No controller found");
+                return;
+            }
+            TriggerSource.SelectedIndex = -1;
+            TriggerPolarity.SelectedIndex = -1;
+            PulseConfigSelect.SelectedIndex = -1;
             TriggerSource.SelectedIndex = Convert.ToInt32(evalTextInRange(ControllerConfig.GetResponse("GTRS"), 0, ControllerConfig.MaxTriggerSource));
             TriggerPeriodBox.Text = evalTextInRange(ControllerConfig.GetResponse("GTTP"), ControllerConfig.MinTimedTriggerPeriod, ControllerConfig.MaxTimedTriggerPeriod).ToString();
             TriggerPolarity.SelectedIndex = Convert.ToInt32(evalTextInRange(ControllerConfig.GetResponse("GHTP"), 0, ControllerConfig.MaxTriggerPolarity));
-            // TODO the rest of the config load
+            NumberOfPulsesBox.Text = ControllerConfig.NumOfLoadedPulses.ToString();
+            NumberOfPulsesBox_LostFocus(new object(), new RoutedEventArgs());
+            PulseConfigSelect.SelectedIndex = 0;
+            enableControllerControls(true);
+            outputText("Controller found");
         }
 
         private void TriggerPeriodBox_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -231,12 +265,30 @@ namespace camera_app
         private void PulsePeriodBox_LostFocus(object sender, RoutedEventArgs e)
         {
             PulsePeriodBox.Text = evalTextInRange(PulsePeriodBox.Text, CameraConfig.MinExposure, CameraConfig.MaxExposure).ToString();
-            ControllerConfig.PulsePeriod[PulseConfigSelect.SelectedIndex] = long.Parse(PulsePeriodBox.Text);
+            ControllerConfig.PulsePeriod[PulseConfigSelect.SelectedIndex] = uint.Parse(PulsePeriodBox.Text);
         }
 
         private void PulseOutput_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            ControllerConfig.PulseOutput[PulseConfigSelect.SelectedIndex] = PulseOutput.SelectedIndex;
+            ControllerConfig.PulseOutput[PulseConfigSelect.SelectedIndex] = (uint)PulseOutput.SelectedIndex;
+        }
+
+        private void PulseConfigSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!loaded) return;
+            try
+            {
+                PulseOutput.SelectedIndex = (int)ControllerConfig.PulseOutput[PulseConfigSelect.SelectedIndex];
+                PulsePeriodBox.Text = ControllerConfig.PulsePeriod[PulseConfigSelect.SelectedIndex].ToString();
+            }
+            catch { }
+        }
+
+        private void TriggerSource_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!loaded) return;
+            TriggerPeriodBox.IsEnabled = TriggerSource.SelectedIndex == 2;
+            TriggerPolarity.IsEnabled = TriggerSource.SelectedIndex == 3;
         }
     }
 }

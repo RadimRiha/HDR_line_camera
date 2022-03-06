@@ -10,16 +10,16 @@ namespace camera_app
     static class ControllerConfig
     {
         static public readonly uint MaxNumPulses = 10;
-        static public readonly long MaxPulseOutput = 8;
-        static public readonly long MaxTriggerSource = 4;
-        static public readonly long MinTimedTriggerPeriod = 4;
-        static public readonly long MaxTimedTriggerPeriod = 0xffff;
-        static public readonly long MaxTriggerPolarity = 3;
-        
+        static public readonly uint MaxPulseOutput = 4;
+        static public readonly uint MaxTriggerSource = 4;
+        static public readonly uint MinTimedTriggerPeriod = 4;
+        static public readonly uint MaxTimedTriggerPeriod = 0xffff;
+        static public readonly uint MaxTriggerPolarity = 3;
 
         static private SerialPort serialPort = new SerialPort();
-        static public int[] PulseOutput = new int[MaxNumPulses];
-        static public long[] PulsePeriod = new long[MaxNumPulses];
+        static public uint[] PulseOutput = new uint[MaxNumPulses];
+        static public uint[] PulsePeriod = new uint[MaxNumPulses];
+        static public uint NumOfLoadedPulses = 0;
 
         static public bool Search()
         {
@@ -46,10 +46,31 @@ namespace camera_app
 
         static private void loadPulseConfig()
         {
-
+            uint i = 0;
+            foreach (string puo in GetResponse("GPUO").Split(','))
+            {
+                try
+                {
+                    PulseOutput[i] = uint.Parse(puo);
+                    if (PulseOutput[i] > MaxPulseOutput) PulseOutput[i] -= MaxPulseOutput;  //change L+T configurations into just L configurations
+                }
+                catch { break; }
+                i++;
+            }
+            NumOfLoadedPulses = i;
+            for (; i < MaxNumPulses; i++) { PulseOutput[i] = 0; }
+            i = 0;
+            foreach (string pup in GetResponse("GPUP").Split(','))
+            {
+                try { PulsePeriod[i] = uint.Parse(pup); }
+                catch { break; }
+                i++;
+            }
+            for (; i < MaxNumPulses; i++) { PulsePeriod[i] = 1000; }
         }
 
-        static public string GetResponse(string msg) {
+        static public string GetResponse(string msg)
+        {
             if (serialPort.IsOpen)
             {
                 try
@@ -62,9 +83,20 @@ namespace camera_app
             return "";
         }
 
-        static public bool Config()
+        static private bool trySet(string msg)
         {
-            return false;
+            return GetResponse(msg).StartsWith("OK");
+        }
+
+        static public bool UploadConfig(uint triggerSource, uint trigerPeriod, uint triggerPolarity)
+        {
+            bool success = true;
+            success &= trySet("SPUO" + String.Join(",", PulseOutput));
+            success &= trySet("SPUP" + String.Join(",", PulsePeriod));
+            success &= trySet("STRS" + triggerSource.ToString());
+            success &= trySet("STTP" + trigerPeriod.ToString());
+            success &= trySet("SHTP" + triggerPolarity.ToString());
+            return success;
         }
     }
 }

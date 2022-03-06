@@ -9,10 +9,12 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="42"/>
+            <RowDefinition Height="5"/>
             <RowDefinition Height="25"/>
             <RowDefinition Height="25"/>
             <RowDefinition Height="25"/>
             <RowDefinition Height="25"/>
+            <RowDefinition Height="5"/>
             <RowDefinition Height="25"/>
             <RowDefinition Height="25"/>
             <RowDefinition Height="25"/>
@@ -29,15 +31,15 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="70"/>
             <ColumnDefinition Width="70"/>
-            <ColumnDefinition Width="50"/>
-            <ColumnDefinition Width="120"/>
+            <ColumnDefinition Width="60"/>
+            <ColumnDefinition Width="110"/>
             <ColumnDefinition Width="130"/>
-            <ColumnDefinition Width="280*"/>
+            <ColumnDefinition/>
         </Grid.ColumnDefinitions>
 
-        <Border BorderBrush="Black" BorderThickness="0,1,1,0" Grid.ColumnSpan="3" Grid.Row="5" Grid.RowSpan="12"/>
+        <Border BorderBrush="Black" BorderThickness="0,1,1,0" Grid.ColumnSpan="3" Grid.Row="6" Grid.RowSpan="13"/>
 
-        <Border BorderBrush="Black" BorderThickness="0,0,1,0" Grid.ColumnSpan="3" Grid.Row="1" Grid.RowSpan="4"/>
+        <Border BorderBrush="Black" BorderThickness="0,0,1,0" Grid.ColumnSpan="3" Grid.Row="1" Grid.RowSpan="5"/>
 
         <Border BorderBrush="Black" BorderThickness="0,0,0,1" Grid.Column="5"/>
 
@@ -47,57 +49,64 @@
         <Button x:Name="DeviceSelectButton" Content="Select device" Margin="42,10,0,0" VerticalAlignment="Top" Height="22" Click="DeviceSelectButton_Click" Grid.Column="4" HorizontalAlignment="Left" Width="78"/>
         <Button x:Name="StartAcquisition" Content="▶" HorizontalContentAlignment="Center" Margin="10,10,0,0" VerticalContentAlignment="Center" Click="StartAcquisition_Click" FontSize="14" Height="22" VerticalAlignment="Top" HorizontalAlignment="Left" Width="22" Grid.Column="5"/>
         <Button x:Name="StopAcquisition" Content="■" HorizontalContentAlignment="Center" Margin="44,10,0,0" VerticalContentAlignment="Center" Click="StopAcquisition_Click" FontSize="14" Height="22" VerticalAlignment="Top" HorizontalAlignment="Left" Width="22" Grid.Column="5"/>
-        <Label x:Name="OutLabel" Content="Output:&#xA;" Grid.Column="3" Grid.Row="1" Grid.RowSpan="16" Grid.ColumnSpan="3"/>
         <Button x:Name="Refresh" Content="↻" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="22" Height="22" Click="Refresh_Click" Grid.Column="4"/>
-        <TextBox x:Name="WidthBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="1" TextWrapping="Wrap" Text="1" PreviewKeyDown="WidthBox_PreviewKeyDown" Margin="5,5,5,0" LostFocus="WidthBox_LostFocus"/>
-        <TextBox x:Name="HeightBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="2" TextWrapping="Wrap" Text="1" PreviewKeyDown="HeightBox_PreviewKeyDown" Margin="5,5,5,0" LostFocus="HeightBox_LostFocus"/>
-        <TextBox x:Name="XOffsetBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="3" TextWrapping="Wrap" Text="0" PreviewKeyDown="XOffsetBox_PreviewKeyDown" Margin="5,5,5,0" LostFocus="XOffsetBox_LostFocus"/>
-        <Slider x:Name="WidthSlider" IsSnapToTickEnabled="True" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" RenderTransformOrigin="0.5,0.5" Grid.Row="1" Grid.Column="1" ValueChanged="WidthSlider_ValueChanged" TickPlacement="Both" Maximum="1" Minimum="1"/>
-        <Label Content="Width" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="1" Margin="10,0,0,0"/>
-        <Slider x:Name="HeightSlider" IsSnapToTickEnabled="True" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" RenderTransformOrigin="0.5,0.5" Grid.Row="2" Grid.Column="1" ValueChanged="HeightSlider_ValueChanged" SmallChange="1" TickPlacement="Both" Minimum="1" Maximum="1"/>
-        <Label Content="Height" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="2" Margin="10,0,0,0"/>
-        <Slider x:Name="XOffsetSlider" IsSnapToTickEnabled="True" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" RenderTransformOrigin="0.5,0.5" Grid.Row="3" Grid.Column="1" ValueChanged="XOffsetSlider_ValueChanged" SmallChange="1" TickPlacement="Both" Maximum="0"/>
-        <Label Content="X offset" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="3" Margin="10,0,0,0"/>
-        <Label Content="Center X offset" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="4" Grid.ColumnSpan="2" Margin="10,0,0,0"/>
-        <CheckBox x:Name="CenterXCheck" Content="" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="4" Click="CenterXCheck_Click" Margin="5,0"/>
-        <Label Content="Trigger config" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Row="7" Grid.ColumnSpan="3"/>
-        <Label Content="Source" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="8" Margin="10,0,0,0"/>
-        <Label Content="Period [us]" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="9" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
-        <Label Content="Polarity" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="10" Margin="10,0,0,0"/>
-        <Label Content="Number of pulses" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="12" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
-        <ComboBox x:Name="TriggerSource" Grid.ColumnSpan="2" Grid.Column="1" Grid.Row="8" VerticalAlignment="Top" Margin="10,5,5,0" Height="20" SelectedIndex="0">
+        <TextBox x:Name="WidthBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="2" TextWrapping="Wrap" Text="1" PreviewKeyDown="WidthBox_PreviewKeyDown" Margin="5,5,10,0" LostFocus="WidthBox_LostFocus"/>
+        <TextBox x:Name="HeightBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="3" TextWrapping="Wrap" Text="1" PreviewKeyDown="HeightBox_PreviewKeyDown" Margin="5,5,10,0" LostFocus="HeightBox_LostFocus"/>
+        <TextBox x:Name="XOffsetBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="4" TextWrapping="Wrap" Text="0" PreviewKeyDown="XOffsetBox_PreviewKeyDown" Margin="5,5,10,0" LostFocus="XOffsetBox_LostFocus"/>
+        <Slider x:Name="WidthSlider" IsSnapToTickEnabled="True" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" RenderTransformOrigin="0.5,0.5" Grid.Row="2" Grid.Column="1" ValueChanged="WidthSlider_ValueChanged" TickPlacement="Both" Maximum="1" Minimum="1"/>
+        <Label Content="Width" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="2" Margin="10,0,0,0"/>
+        <Slider x:Name="HeightSlider" IsSnapToTickEnabled="True" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" RenderTransformOrigin="0.5,0.5" Grid.Row="3" Grid.Column="1" ValueChanged="HeightSlider_ValueChanged" SmallChange="1" TickPlacement="Both" Minimum="1" Maximum="1"/>
+        <Label Content="Height" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="3" Margin="10,0,0,0"/>
+        <Slider x:Name="XOffsetSlider" IsSnapToTickEnabled="True" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" RenderTransformOrigin="0.5,0.5" Grid.Row="4" Grid.Column="1" ValueChanged="XOffsetSlider_ValueChanged" SmallChange="1" TickPlacement="Both" Maximum="0"/>
+        <Label Content="X offset" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="4" Margin="10,0,0,0"/>
+        <Label Content="Center X offset" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="5" Grid.ColumnSpan="2" Margin="10,0,0,0"/>
+        <CheckBox x:Name="CenterXCheck" Content="" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="5" Click="CenterXCheck_Click" Margin="5,0"/>
+        <Label Content="Trigger config" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Row="9" Grid.ColumnSpan="3"/>
+        <Label Content="Source" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="10" Margin="10,0,0,0"/>
+        <Label Content="Period [us]" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="11" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
+        <Label Content="Polarity" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="12" Margin="10,0,0,0"/>
+        <Label Content="Number of pulses" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="14" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
+        <ComboBox x:Name="TriggerSource" Grid.ColumnSpan="2" Grid.Column="1" Grid.Row="10" VerticalAlignment="Top" Margin="10,5,10,0" Height="20" SelectedIndex="0" SelectionChanged="TriggerSource_SelectionChanged">
             <ComboBoxItem Content="None"/>
             <ComboBoxItem Content="Free"/>
             <ComboBoxItem Content="Timed"/>
             <ComboBoxItem Content="HW"/>
             <ComboBoxItem Content="Encoder"/>
         </ComboBox>
-        <ComboBox x:Name="TriggerPolarity" Grid.ColumnSpan="2" Grid.Column="1" Grid.Row="10" VerticalAlignment="Top" Margin="10,5,5,0" Height="20" SelectedIndex="0">
+        <ComboBox x:Name="TriggerPolarity" Grid.ColumnSpan="2" Grid.Column="1" Grid.Row="12" VerticalAlignment="Top" Margin="10,5,10,0" Height="20" SelectedIndex="0">
             <ComboBoxItem Content="Rising edge"/>
             <ComboBoxItem Content="Falling edge"/>
             <ComboBoxItem Content="High level"/>
             <ComboBoxItem Content="Low level"/>
         </ComboBox>
-        <TextBox x:Name="NumberOfPulsesBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="12" TextWrapping="Wrap" Text="1" Margin="5,5,5,0" PreviewKeyDown="NumberOfPulsesBox_PreviewKeyDown" LostFocus="NumberOfPulsesBox_LostFocus"/>
-        <TextBox x:Name="TriggerPeriodBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="9" TextWrapping="Wrap" Text="4" Margin="5,5,5,0" PreviewKeyDown="TriggerPeriodBox_PreviewKeyDown" LostFocus="TriggerPeriodBox_LostFocus"/>
-        <Label Content="Configure pulse" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="13" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
-        <ComboBox x:Name="PulseConfigSelect" Grid.Column="2" Grid.Row="13" VerticalAlignment="Top" Margin="5,5,5,0" Height="20" SelectedIndex="0">
+        <TextBox x:Name="NumberOfPulsesBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="14" TextWrapping="Wrap" Text="1" Margin="5,5,10,0" PreviewKeyDown="NumberOfPulsesBox_PreviewKeyDown" LostFocus="NumberOfPulsesBox_LostFocus"/>
+        <TextBox x:Name="TriggerPeriodBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="11" TextWrapping="Wrap" Text="4" Margin="5,5,10,0" PreviewKeyDown="TriggerPeriodBox_PreviewKeyDown" LostFocus="TriggerPeriodBox_LostFocus"/>
+        <Label Content="Configure pulse" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="15" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
+        <ComboBox x:Name="PulseConfigSelect" Grid.Column="2" Grid.Row="15" VerticalAlignment="Top" Margin="5,5,10,0" Height="20" SelectedIndex="0" SelectionChanged="PulseConfigSelect_SelectionChanged">
             <ComboBoxItem Content="1"/>
         </ComboBox>
-        <Label Content="Output" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="14" Margin="10,0,0,0"/>
-        <Label Content="Period [us]" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="15" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
-        <ComboBox x:Name="PulseOutput" Grid.Column="1" Grid.Row="14" VerticalAlignment="Top" Margin="10,5,5,0" Height="20" SelectedIndex="0" Grid.ColumnSpan="2" SelectionChanged="PulseOutput_SelectionChanged">
+        <Label Content="Output" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="16" Margin="10,0,0,0"/>
+        <Label Content="Period [us]" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="17" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
+        <ComboBox x:Name="PulseOutput" Grid.Column="1" Grid.Row="16" VerticalAlignment="Top" Margin="10,5,10,0" Height="20" SelectedIndex="0" Grid.ColumnSpan="2" SelectionChanged="PulseOutput_SelectionChanged">
             <ComboBoxItem Content="Line trigger"/>
             <ComboBoxItem Content="Light 1"/>
             <ComboBoxItem Content="Light 2"/>
             <ComboBoxItem Content="Light 3"/>
             <ComboBoxItem Content="All lights"/>
         </ComboBox>
-        <TextBox x:Name="PulsePeriodBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="15" TextWrapping="Wrap" Text="2" PreviewKeyDown="PulsePeriodBox_PreviewKeyDown" Margin="5,5,5,0" LostFocus="PulsePeriodBox_LostFocus"/>
-        <Label Content="Pulse config" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Row="11" Grid.ColumnSpan="3"/>
-        <Button x:Name="SearchControllerButton" Content="Search for controller" Margin="10,5,10,0" VerticalAlignment="Top" Height="20" Click="SearchControllerButton_Click" Grid.ColumnSpan="3" Grid.Row="5"/>
-        <Label Content="Controller connected" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="6" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
-        <CheckBox x:Name="ControllerConnectedCheck" Content="" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="6" Margin="5,0" IsEnabled="False"/>
+        <TextBox x:Name="PulsePeriodBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="17" TextWrapping="Wrap" Text="2" PreviewKeyDown="PulsePeriodBox_PreviewKeyDown" Margin="5,5,10,0" LostFocus="PulsePeriodBox_LostFocus"/>
+        <Label Content="Pulse config" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Row="13" Grid.ColumnSpan="3"/>
+        <Button x:Name="SearchControllerButton" Content="Search for controller" Margin="10,5,10,0" VerticalAlignment="Top" Height="20" Click="SearchControllerButton_Click" Grid.ColumnSpan="3" Grid.Row="7"/>
+        <Label Content="Controller connected" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="8" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
+        <CheckBox x:Name="ControllerConnectedCheck" Content="" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="8" Margin="5,0" IsEnabled="False"/>
+        <RichTextBox x:Name="OutBox" Grid.ColumnSpan="3" Grid.Column="3" Grid.Row="3" Grid.RowSpan="16" Margin="10,0,0,0">
+            <FlowDocument>
+                <Paragraph>
+                    <Run Text="RichTextBox"/>
+                </Paragraph>
+            </FlowDocument>
+        </RichTextBox>
+        <Label Content="Output:" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="2" Margin="10,0,0,0" Grid.Column="3"/>
 
     </Grid>
 </Window>

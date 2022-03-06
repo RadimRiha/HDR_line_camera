@@ -292,6 +292,8 @@ void processUsart() {
 				usartAddToOutBuffer(intToString(pulseTrainComplete));
 				usartAddToOutBuffer(intToString(pulseCount));
 				usartAddToOutBuffer(intToString(cameraReady));
+			}else if(cmpString(USART0.inBuffer+1, "ID\0")) {	//for controller identification and communication test
+				usartAddToOutBuffer("CONTROLLER");
 			}else usartAddToOutBuffer("UNRECOGNIZED");
 			usartAddToOutBuffer("\n\0");
 			usartSend();
