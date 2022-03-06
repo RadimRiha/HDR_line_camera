@@ -99,12 +99,7 @@
         <Button x:Name="SearchControllerButton" Content="Search for controller" Margin="10,5,10,0" VerticalAlignment="Top" Height="20" Click="SearchControllerButton_Click" Grid.ColumnSpan="3" Grid.Row="7"/>
         <Label Content="Controller connected" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="8" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
         <CheckBox x:Name="ControllerConnectedCheck" Content="" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="8" Margin="5,0" IsEnabled="False"/>
-        <RichTextBox x:Name="OutBox" Grid.ColumnSpan="3" Grid.Column="3" Grid.Row="3" Grid.RowSpan="16" Margin="10,0,0,0">
-            <FlowDocument>
-                <Paragraph>
-                    <Run Text="RichTextBox"/>
-                </Paragraph>
-            </FlowDocument>
+        <RichTextBox x:Name="OutBox" IsReadOnly = "True" Grid.ColumnSpan="3" Grid.Column="3" Grid.Row="3" Grid.RowSpan="16" Margin="10,0,10,10">
         </RichTextBox>
         <Label Content="Output:" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="2" Margin="10,0,0,0" Grid.Column="3"/>
 

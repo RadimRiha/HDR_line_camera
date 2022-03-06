@@ -51,7 +51,6 @@ namespace camera_app
 
         private void enableControllerControls(bool enabled)
         {
-            ControllerConnectedCheck.IsChecked = enabled;
             TriggerSource.IsEnabled = enabled;
             TriggerPeriodBox.IsEnabled = enabled;
             TriggerPolarity.IsEnabled = enabled;
@@ -112,6 +111,7 @@ namespace camera_app
             XOffsetSlider.Value = CameraConfig.OrigXOffset;
             XOffsetSlider_ValueChanged(new object(), new RoutedPropertyChangedEventArgs<double>(0, 1));
             enableCameraControls(true);
+            StopAcquisition.IsEnabled = false;
             outputText("Camera initialization OK");
         }
 
@@ -130,13 +130,20 @@ namespace camera_app
             }
             else outputText("Controller configuration OK");
             enableCameraControls(false);
+            StopAcquisition.IsEnabled = true;
             enableControllerControls(false);
+            DeviceSelectButton.IsEnabled = false;
+            SearchControllerButton.IsEnabled = false;
             AcquisitionHandler.Start();
         }
 
         private void StopAcquisition_Click(object sender, RoutedEventArgs e)
         {
-
+            enableCameraControls(true);
+            StopAcquisition.IsEnabled = false;
+            enableControllerControls(true);
+            DeviceSelectButton.IsEnabled = true;
+            SearchControllerButton.IsEnabled = true;
         }
 
         private void Refresh_Click(object sender, RoutedEventArgs e)
@@ -215,11 +222,14 @@ namespace camera_app
         private void SearchControllerButton_Click(object sender, RoutedEventArgs e)
         {
             enableControllerControls(false);
+            ControllerConnectedCheck.IsChecked = false;
             if (!ControllerConfig.Search())
             {
                 outputText("No controller found");
                 return;
             }
+            enableControllerControls(true);
+            ControllerConnectedCheck.IsChecked = true;
             TriggerSource.SelectedIndex = -1;
             TriggerPolarity.SelectedIndex = -1;
             PulseConfigSelect.SelectedIndex = -1;
@@ -229,7 +239,6 @@ namespace camera_app
             NumberOfPulsesBox.Text = ControllerConfig.NumOfLoadedPulses.ToString();
             NumberOfPulsesBox_LostFocus(new object(), new RoutedEventArgs());
             PulseConfigSelect.SelectedIndex = 0;
-            enableControllerControls(true);
             outputText("Controller found");
         }
 

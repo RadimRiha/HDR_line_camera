@@ -28,15 +28,15 @@ namespace camera_app
 			if (!Array.Exists(supportedCameras, element => camera.StartsWith(element))) return false;
 			CameraSerialNumber = camera.Substring(camera.IndexOf('(') + 1);
 			CameraSerialNumber = CameraSerialNumber.Substring(0, CameraSerialNumber.Length-1);
-			Init();
-			return true;
+			return Init();
 		}
 
-		private static void Init()
+		private static bool Init()
         {
 			using (Camera camera = new Camera(CameraSerialNumber))
 			{
-				camera.Open();
+				try { camera.Open(); }
+				catch { return false; }
 				OrigWidth = camera.Parameters[PLCamera.Width].GetValue();
 				OrigHeight = camera.Parameters[PLCamera.Height].GetValue();
 				OrigXOffset = camera.Parameters[PLCamera.OffsetX].GetValue();
@@ -51,6 +51,7 @@ namespace camera_app
 				// increase packet size
 				camera.Parameters[PLCamera.GevSCPSPacketSize].TrySetValue(MaxWidth);
 				camera.Close();
+				return true;
 			}
 		}
 
@@ -59,7 +60,8 @@ namespace camera_app
 			using (Camera camera = new Camera(CameraSerialNumber))
 			{
 				bool success = true;
-				camera.Open();
+				try { camera.Open(); }
+				catch { return false; }
 				success &= camera.Parameters[PLCamera.Width].TrySetValue(frameWidth, IntegerValueCorrection.Nearest);
 				success &= camera.Parameters[PLCamera.Height].TrySetValue(frameHeight, IntegerValueCorrection.Nearest);
 				success &= camera.Parameters[PLCamera.OffsetX].TrySetValue(XOffset, IntegerValueCorrection.Nearest);

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO.Ports;
+using System.Threading;
 
 namespace camera_app
 {
@@ -27,8 +28,8 @@ namespace camera_app
             foreach (string portName in SerialPort.GetPortNames())
             {
                 serialPort = new SerialPort(portName, 9600);
-                serialPort.ReadTimeout = 500;
-                serialPort.WriteTimeout = 500;
+                serialPort.ReadTimeout = 1000;
+                serialPort.WriteTimeout = 1000;
                 try
                 {
                     serialPort.Open();
@@ -75,6 +76,7 @@ namespace camera_app
             {
                 try
                 {
+                    Thread.Sleep(200);
                     serialPort.WriteLine(msg);
                     return serialPort.ReadLine();
                 }
@@ -91,6 +93,7 @@ namespace camera_app
         static public bool UploadConfig(uint triggerSource, uint trigerPeriod, uint triggerPolarity)
         {
             bool success = true;
+            //TODO upload only a limited number of PUO and PUP
             success &= trySet("SPUO" + String.Join(",", PulseOutput));
             success &= trySet("SPUP" + String.Join(",", PulsePeriod));
             success &= trySet("STRS" + triggerSource.ToString());

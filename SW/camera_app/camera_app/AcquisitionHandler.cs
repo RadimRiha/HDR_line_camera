@@ -14,7 +14,7 @@ namespace camera_app
             try
             {
                 using (Camera camera = new Camera(CameraConfig.CameraSerialNumber))
-                {
+                {/*
                     camera.Open();
                     camera.Parameters[PLCameraInstance.MaxNumBuffer].SetValue(5);
                     camera.StreamGrabber.Start();
@@ -39,7 +39,7 @@ namespace camera_app
                         }
                     }
                     camera.StreamGrabber.Stop();
-                    camera.Close();
+                    camera.Close();*/
                 }
             }
             catch
