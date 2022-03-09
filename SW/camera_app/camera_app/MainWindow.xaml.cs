@@ -22,6 +22,7 @@ namespace camera_app
     public partial class MainWindow : Window
     {
         private static bool loaded = false;
+        private static AcquisitionHandler acqHandler = new AcquisitionHandler();
         private void refreshDevices()
         {
             DeviceSelect.Items.Clear();
@@ -30,10 +31,8 @@ namespace camera_app
             {
                 string name = camera.GetValueOrDefault("FriendlyName", "property not found");
                 int addedItemIndex = DeviceSelect.Items.Add(name);
-                if (name.Contains(CameraConfig.CameraSerialNumber) && CameraConfig.CameraSerialNumber != "")
-                {
-                    DeviceSelect.SelectedIndex = addedItemIndex;
-                }
+                if (acqHandler.Camera == null) continue;
+                if (camera.GetValueOrDefault("FriendlyName", "") == acqHandler.Camera.CameraInfo.GetValueOrDefault("FriendlyName", "")) DeviceSelect.SelectedIndex = addedItemIndex;
             }
         }
         private void enableCameraControls(bool enabled)
@@ -58,7 +57,7 @@ namespace camera_app
             PulseConfigSelect.IsEnabled = enabled;
             PulseOutput.IsEnabled = enabled;
             PulsePeriodBox.IsEnabled = enabled;
-            if(enabled) updateTriggerControls();
+            if (enabled) updateTriggerControls();
         }
 
         private long evalTextInRange(string text, long min, long max)
@@ -99,17 +98,17 @@ namespace camera_app
                 outputText("Camera initialization FAIL");
                 return;
             }
-            if (!CameraConfig.SetModel(DeviceSelect.SelectedItem.ToString()))
+            if (!acqHandler.SetModel(DeviceSelect.SelectedItem.ToString()))
             {
                 outputText("Camera initialization FAIL");
                 return;
             }
-            WidthSlider.Maximum = CameraConfig.OrigWidth;
-            WidthSlider.Value = CameraConfig.OrigWidth;
+            WidthSlider.Maximum = AcquisitionHandler.OrigWidth;
+            WidthSlider.Value = AcquisitionHandler.OrigWidth;
             WidthSlider_ValueChanged(new object(), new RoutedPropertyChangedEventArgs<double>(0, 1));
-            HeightSlider.Maximum = CameraConfig.MaxHeight;
-            HeightSlider.Value = CameraConfig.OrigHeight;
-            XOffsetSlider.Value = CameraConfig.OrigXOffset;
+            HeightSlider.Maximum = AcquisitionHandler.MaxHeight;
+            HeightSlider.Value = AcquisitionHandler.OrigHeight;
+            XOffsetSlider.Value = AcquisitionHandler.OrigXOffset;
             XOffsetSlider_ValueChanged(new object(), new RoutedPropertyChangedEventArgs<double>(0, 1));
             enableCameraControls(true);
             StopAcquisition.IsEnabled = false;
@@ -118,28 +117,34 @@ namespace camera_app
 
         private void StartAcquisition_Click(object sender, RoutedEventArgs e)
         {
-            if (!CameraConfig.UploadConfig(Convert.ToInt64(WidthSlider.Value), Convert.ToInt64(HeightSlider.Value), Convert.ToInt64(XOffsetSlider.Value)))
+            if (!acqHandler.UploadConfig(Convert.ToInt64(WidthSlider.Value), Convert.ToInt64(HeightSlider.Value), Convert.ToInt64(XOffsetSlider.Value)))
             {
                 outputText("Camera configuration FAIL");
                 return;
             }
-            else outputText("Camera configuration OK");
+            outputText("Camera configuration OK");
             if (!ControllerConfig.UploadConfig((uint)TriggerSource.SelectedIndex, Convert.ToUInt16(TriggerPeriodBox.Text), (uint)TriggerPolarity.SelectedIndex, Convert.ToUInt16(NumberOfPulsesBox.Text)))
             {
                 outputText("Controller configuration FAIL");
                 return;
             }
-            else outputText("Controller configuration OK");
+            outputText("Controller configuration OK");
+            if (!acqHandler.Start())
+            {
+                outputText("Acquisition initialization FAIL");
+                return;
+            }
+            outputText("Acquisition initialization OK");
             enableCameraControls(false);
             StopAcquisition.IsEnabled = true;
             enableControllerControls(false);
             DeviceSelectButton.IsEnabled = false;
             SearchControllerButton.IsEnabled = false;
-            AcquisitionHandler.Start();
         }
 
         private void StopAcquisition_Click(object sender, RoutedEventArgs e)
         {
+            acqHandler.Stop();
             enableCameraControls(true);
             StopAcquisition.IsEnabled = false;
             enableControllerControls(true);
@@ -156,7 +161,7 @@ namespace camera_app
         {
             if (!loaded) return;
             WidthBox.Text = WidthSlider.Value.ToString();
-            long maxOffset = CameraConfig.MaxWidth - Convert.ToInt64(WidthSlider.Value);
+            long maxOffset = AcquisitionHandler.MaxWidth - Convert.ToInt64(WidthSlider.Value);
             XOffsetSlider.Maximum = maxOffset;
             XOffsetBox.Text = XOffsetSlider.Value.ToString();
             if (CenterXCheck.IsChecked ?? false) XOffsetSlider.Value = maxOffset / 2;
@@ -170,7 +175,7 @@ namespace camera_app
         private void XOffsetSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             XOffsetBox.Text = XOffsetSlider.Value.ToString();
-            long maxWidth = CameraConfig.MaxWidth - Convert.ToInt64(XOffsetSlider.Value);
+            long maxWidth = AcquisitionHandler.MaxWidth - Convert.ToInt64(XOffsetSlider.Value);
             WidthSlider.Maximum = maxWidth;
             WidthBox.Text = WidthSlider.Value.ToString();
         }
@@ -192,7 +197,7 @@ namespace camera_app
 
         private void HeightBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            HeightSlider.Value = evalTextInRange(HeightBox.Text, 1, CameraConfig.MaxHeight);
+            HeightSlider.Value = evalTextInRange(HeightBox.Text, 1, AcquisitionHandler.MaxHeight);
         }
 
         private void XOffsetBox_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -272,7 +277,7 @@ namespace camera_app
 
         private void PulsePeriodBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            PulsePeriodBox.Text = evalTextInRange(PulsePeriodBox.Text, CameraConfig.MinExposure, CameraConfig.MaxExposure).ToString();
+            PulsePeriodBox.Text = evalTextInRange(PulsePeriodBox.Text, AcquisitionHandler.MinExposure, AcquisitionHandler.MaxExposure).ToString();
             ControllerConfig.PulsePeriod[PulseConfigSelect.SelectedIndex] = uint.Parse(PulsePeriodBox.Text);
         }
 
