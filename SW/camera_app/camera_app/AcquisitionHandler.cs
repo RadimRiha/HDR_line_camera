@@ -9,12 +9,12 @@ namespace camera_app
 {
     static class AcquisitionHandler
     {
-        public static void Start()
+        public static bool Start()
         {
             try
             {
                 using (Camera camera = new Camera(CameraConfig.CameraSerialNumber))
-                {/*
+                {
                     camera.Open();
                     camera.Parameters[PLCameraInstance.MaxNumBuffer].SetValue(5);
                     camera.StreamGrabber.Start();
@@ -39,13 +39,14 @@ namespace camera_app
                         }
                     }
                     camera.StreamGrabber.Stop();
-                    camera.Close();*/
+                    camera.Close();
                 }
             }
             catch
             {
-                
+                return true;
             }
+            return false;
         }
     }
 }

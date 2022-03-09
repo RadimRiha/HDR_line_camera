@@ -58,6 +58,7 @@ namespace camera_app
             PulseConfigSelect.IsEnabled = enabled;
             PulseOutput.IsEnabled = enabled;
             PulsePeriodBox.IsEnabled = enabled;
+            if(enabled) updateTriggerControls();
         }
 
         private long evalTextInRange(string text, long min, long max)
@@ -123,7 +124,7 @@ namespace camera_app
                 return;
             }
             else outputText("Camera configuration OK");
-            if (!ControllerConfig.UploadConfig((uint)TriggerSource.SelectedIndex, Convert.ToUInt16(TriggerPeriodBox.Text), (uint)TriggerPolarity.SelectedIndex))
+            if (!ControllerConfig.UploadConfig((uint)TriggerSource.SelectedIndex, Convert.ToUInt16(TriggerPeriodBox.Text), (uint)TriggerPolarity.SelectedIndex, Convert.ToUInt16(NumberOfPulsesBox.Text)))
             {
                 outputText("Controller configuration FAIL");
                 return;
@@ -228,17 +229,15 @@ namespace camera_app
                 outputText("No controller found");
                 return;
             }
-            enableControllerControls(true);
-            ControllerConnectedCheck.IsChecked = true;
-            TriggerSource.SelectedIndex = -1;
-            TriggerPolarity.SelectedIndex = -1;
-            PulseConfigSelect.SelectedIndex = -1;
             TriggerSource.SelectedIndex = Convert.ToInt32(evalTextInRange(ControllerConfig.GetResponse("GTRS"), 0, ControllerConfig.MaxTriggerSource));
-            TriggerPeriodBox.Text = evalTextInRange(ControllerConfig.GetResponse("GTTP"), ControllerConfig.MinTimedTriggerPeriod, ControllerConfig.MaxTimedTriggerPeriod).ToString();
             TriggerPolarity.SelectedIndex = Convert.ToInt32(evalTextInRange(ControllerConfig.GetResponse("GHTP"), 0, ControllerConfig.MaxTriggerPolarity));
+            PulseConfigSelect.SelectedIndex = -1;
+            PulseConfigSelect.SelectedIndex = 0;
+            ControllerConnectedCheck.IsChecked = true;
+            TriggerPeriodBox.Text = evalTextInRange(ControllerConfig.GetResponse("GTTP"), ControllerConfig.MinTimedTriggerPeriod, ControllerConfig.MaxTimedTriggerPeriod).ToString();
             NumberOfPulsesBox.Text = ControllerConfig.NumOfLoadedPulses.ToString();
             NumberOfPulsesBox_LostFocus(new object(), new RoutedEventArgs());
-            PulseConfigSelect.SelectedIndex = 0;
+            enableControllerControls(true);
             outputText("Controller found");
         }
 
@@ -293,11 +292,16 @@ namespace camera_app
             catch { }
         }
 
+        private void updateTriggerControls()
+        {
+            TriggerPeriodBox.IsEnabled = TriggerSource.SelectedIndex == 2;
+            TriggerPolarity.IsEnabled = TriggerSource.SelectedIndex == 3;
+        }
+
         private void TriggerSource_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (!loaded) return;
-            TriggerPeriodBox.IsEnabled = TriggerSource.SelectedIndex == 2;
-            TriggerPolarity.IsEnabled = TriggerSource.SelectedIndex == 3;
+            updateTriggerControls();
         }
     }
 }

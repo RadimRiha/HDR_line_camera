@@ -90,12 +90,11 @@ namespace camera_app
             return GetResponse(msg).StartsWith("OK");
         }
 
-        static public bool UploadConfig(uint triggerSource, uint trigerPeriod, uint triggerPolarity)
+        static public bool UploadConfig(uint triggerSource, uint trigerPeriod, uint triggerPolarity, uint numberOfPulses)
         {
             bool success = true;
-            //TODO upload only a limited number of PUO and PUP
-            success &= trySet("SPUO" + String.Join(",", PulseOutput));
-            success &= trySet("SPUP" + String.Join(",", PulsePeriod));
+            success &= trySet("SPUO" + String.Join(",", new ArraySegment<uint>(PulseOutput, 0, (int)numberOfPulses).ToArray()));
+            success &= trySet("SPUP" + String.Join(",", new ArraySegment<uint>(PulsePeriod, 0, (int)numberOfPulses).ToArray()));
             success &= trySet("STRS" + triggerSource.ToString());
             success &= trySet("STTP" + trigerPeriod.ToString());
             success &= trySet("SHTP" + triggerPolarity.ToString());
