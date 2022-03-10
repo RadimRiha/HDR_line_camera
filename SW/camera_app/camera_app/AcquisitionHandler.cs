@@ -24,6 +24,30 @@ namespace camera_app
         static public long OrigHeight = 1;
         static public long OrigXOffset = 0;
 
+        static public event EventHandler CameraDisconnected;
+
+        static private void onCameraDisconnected(Object sender, EventArgs e)
+        {
+            if (CameraDisconnected != null) CameraDisconnected(new object(), e);
+        }
+
+        static private void onImageGrabbed(Object sender, ImageGrabbedEventArgs e)
+        {
+            // The grab result is automatically disposed when the event call back returns.
+            // The grab result can be cloned using IGrabResult.Clone if you want to keep a copy of it (not shown in this sample).
+            IGrabResult grabResult = e.GrabResult;
+            if (grabResult.GrabSucceeded)
+            {
+                byte[] buffer = grabResult.PixelData as byte[];
+                ImageWindow.DisplayImage(0, grabResult);
+                
+            }
+            else
+            {
+                
+            }
+        }
+
         public bool SetModel(string camera)
         {
             try
@@ -32,6 +56,8 @@ namespace camera_app
                 string serial = camera.Substring(camera.IndexOf('(') + 1);
                 serial = serial.Substring(0, serial.Length - 1);
                 Camera = new Camera(serial);
+                Camera.ConnectionLost += onCameraDisconnected;
+                Camera.StreamGrabber.ImageGrabbed += onImageGrabbed;
             }
             catch { return false; }
             return Init();
@@ -62,7 +88,6 @@ namespace camera_app
                 Camera.Close();
                 return false;
             }
-            Camera.Close();
             return true;
         }
 
@@ -71,7 +96,6 @@ namespace camera_app
             if (Camera == null) return false;
             try
             {
-                Camera.Open();
                 Camera.Parameters[PLCamera.Width].TrySetValue(frameWidth, IntegerValueCorrection.Nearest);
                 Camera.Parameters[PLCamera.Height].TrySetValue(frameHeight, IntegerValueCorrection.Nearest);
                 Camera.Parameters[PLCamera.OffsetX].TrySetValue(XOffset, IntegerValueCorrection.Nearest);
@@ -87,40 +111,12 @@ namespace camera_app
                 Camera.Close();
                 return false;
             }
-            Camera.Close();
             return true;
-        }
-
-        static void OnImageGrabbed(Object sender, ImageGrabbedEventArgs e)
-        {
-            // The grab result is automatically disposed when the event call back returns.
-            // The grab result can be cloned using IGrabResult.Clone if you want to keep a copy of it (not shown in this sample).
-            IGrabResult grabResult = e.GrabResult;
-            // Image grabbed successfully?
-            if (grabResult.GrabSucceeded)
-            {
-                // Access the image data.
-                Console.WriteLine("SizeX: {0}", grabResult.Width);
-                Console.WriteLine("SizeY: {0}", grabResult.Height);
-                byte[] buffer = grabResult.PixelData as byte[];
-                Console.WriteLine("Gray value of first pixel: {0}", buffer[0]);
-                Console.WriteLine("");
-
-                // Display the grabbed image.
-                ImageWindow.DisplayImage(0, grabResult);
-                ImagePersistence.Save(ImageFileFormat.Bmp, "test.bmp", grabResult);
-            }
-            else
-            {
-                Console.WriteLine("Error: {0} {1}", grabResult.ErrorCode, grabResult.ErrorDescription);
-            }
         }
 
         public bool Start()
         {
             if (Camera == null) return false;
-            Camera.Open();
-            Camera.StreamGrabber.ImageGrabbed += OnImageGrabbed;
             Camera.StreamGrabber.Start(GrabStrategy.OneByOne, GrabLoop.ProvidedByStreamGrabber);
             return true;
         }
@@ -129,7 +125,6 @@ namespace camera_app
         {
             if (Camera == null) return false;
             Camera.StreamGrabber.Stop();
-            Camera.Close();
             return true;
         }
     }

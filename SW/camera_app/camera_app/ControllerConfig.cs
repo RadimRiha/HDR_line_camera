@@ -20,7 +20,7 @@ namespace camera_app
         static private SerialPort serialPort = new SerialPort();
         static public uint[] PulseOutput = new uint[MaxNumPulses];
         static public uint[] PulsePeriod = new uint[MaxNumPulses];
-        static public uint NumOfLoadedPulses = 0;
+        static public uint NumOfPulses = 0;
 
         static public bool Search()
         {
@@ -58,7 +58,7 @@ namespace camera_app
                 catch { break; }
                 i++;
             }
-            NumOfLoadedPulses = i;
+            NumOfPulses = i;
             for (; i < MaxNumPulses; i++) { PulseOutput[i] = 0; }
             i = 0;
             foreach (string pup in GetResponse("GPUP").Split(','))

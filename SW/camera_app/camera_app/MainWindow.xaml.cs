@@ -23,6 +23,17 @@ namespace camera_app
     {
         private static bool loaded = false;
         private static AcquisitionHandler acqHandler = new AcquisitionHandler();
+        private static event EventHandler applicationExit;
+        
+        private void onApplicationExit(object sender, EventArgs e)
+        {
+            acqHandler.Camera.Close();
+        }
+        private void cameraDisconnected(object sender, EventArgs e)
+        {
+            outputText("Camera disconnected");
+            StopAcquisition_Click(new object(), new RoutedEventArgs());
+        }
         private void refreshDevices()
         {
             DeviceSelect.Items.Clear();
@@ -88,6 +99,8 @@ namespace camera_app
             enableCameraControls(false);
             enableControllerControls(false);
             refreshDevices();
+            AcquisitionHandler.CameraDisconnected += new EventHandler(cameraDisconnected);
+            MainWindow.applicationExit += new EventHandler(this.onApplicationExit);
         }
 
         private void DeviceSelectButton_Click(object sender, RoutedEventArgs e)
@@ -240,7 +253,7 @@ namespace camera_app
             PulseConfigSelect.SelectedIndex = 0;
             ControllerConnectedCheck.IsChecked = true;
             TriggerPeriodBox.Text = evalTextInRange(ControllerConfig.GetResponse("GTTP"), ControllerConfig.MinTimedTriggerPeriod, ControllerConfig.MaxTimedTriggerPeriod).ToString();
-            NumberOfPulsesBox.Text = ControllerConfig.NumOfLoadedPulses.ToString();
+            NumberOfPulsesBox.Text = ControllerConfig.NumOfPulses.ToString();
             NumberOfPulsesBox_LostFocus(new object(), new RoutedEventArgs());
             enableControllerControls(true);
             outputText("Controller found");
@@ -263,8 +276,9 @@ namespace camera_app
 
         private void NumberOfPulsesBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            long numOfPulses = evalTextInRange(NumberOfPulsesBox.Text, 1, ControllerConfig.MaxNumPulses);
+            uint numOfPulses = (uint)evalTextInRange(NumberOfPulsesBox.Text, 1, ControllerConfig.MaxNumPulses);
             NumberOfPulsesBox.Text = numOfPulses.ToString();
+            ControllerConfig.NumOfPulses = numOfPulses;
             PulseConfigSelect.Items.Clear();
             for (uint i = 1; i <= numOfPulses; i++) PulseConfigSelect.Items.Add(i);
             PulseConfigSelect.SelectedIndex = 0;
