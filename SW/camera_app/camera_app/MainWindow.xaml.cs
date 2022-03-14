@@ -88,6 +88,11 @@ namespace camera_app
             OutBox.ScrollToEnd();
         }
 
+        private void updateHeightSliderMaximum()
+        {
+            HeightSlider.Maximum = acqHandler.MaxHeight / Convert.ToUInt32(NumberOfPulsesBox.Text);
+        }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -116,12 +121,12 @@ namespace camera_app
                 outputText("Camera initialization FAIL");
                 return;
             }
-            WidthSlider.Maximum = AcquisitionHandler.OrigWidth;
-            WidthSlider.Value = AcquisitionHandler.OrigWidth;
+            WidthSlider.Maximum = acqHandler.OrigWidth;
+            WidthSlider.Value = acqHandler.OrigWidth;
             WidthSlider_ValueChanged(new object(), new RoutedPropertyChangedEventArgs<double>(0, 1));
-            HeightSlider.Maximum = AcquisitionHandler.MaxHeight;
-            HeightSlider.Value = AcquisitionHandler.OrigHeight;
-            XOffsetSlider.Value = AcquisitionHandler.OrigXOffset;
+            updateHeightSliderMaximum();
+            HeightSlider.Value = acqHandler.OrigHeight;
+            XOffsetSlider.Value = acqHandler.OrigXOffset;
             XOffsetSlider_ValueChanged(new object(), new RoutedPropertyChangedEventArgs<double>(0, 1));
             enableCameraControls(true);
             StopAcquisition.IsEnabled = false;
@@ -130,7 +135,7 @@ namespace camera_app
 
         private void StartAcquisition_Click(object sender, RoutedEventArgs e)
         {
-            if (!acqHandler.UploadConfig(Convert.ToInt64(WidthSlider.Value), Convert.ToInt64(HeightSlider.Value), Convert.ToInt64(XOffsetSlider.Value)))
+            if (!acqHandler.UploadConfig(Convert.ToInt64(WidthSlider.Value), Convert.ToInt64(HeightSlider.Value) * Convert.ToUInt32(NumberOfPulsesBox.Text), Convert.ToInt64(XOffsetSlider.Value)))
             {
                 outputText("Camera configuration FAIL");
                 return;
@@ -174,10 +179,12 @@ namespace camera_app
         {
             if (!loaded) return;
             WidthBox.Text = WidthSlider.Value.ToString();
-            long maxOffset = AcquisitionHandler.MaxWidth - Convert.ToInt64(WidthSlider.Value);
+            long maxOffset = acqHandler.MaxWidth - Convert.ToInt64(WidthSlider.Value);
             XOffsetSlider.Maximum = maxOffset;
             XOffsetBox.Text = XOffsetSlider.Value.ToString();
             if (CenterXCheck.IsChecked ?? false) XOffsetSlider.Value = maxOffset / 2;
+            acqHandler.SetWidth(Convert.ToInt64(WidthSlider.Value));
+            updateHeightSliderMaximum();
         }
 
         private void HeightSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -188,7 +195,7 @@ namespace camera_app
         private void XOffsetSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             XOffsetBox.Text = XOffsetSlider.Value.ToString();
-            long maxWidth = AcquisitionHandler.MaxWidth - Convert.ToInt64(XOffsetSlider.Value);
+            long maxWidth = acqHandler.MaxWidth - Convert.ToInt64(XOffsetSlider.Value);
             WidthSlider.Maximum = maxWidth;
             WidthBox.Text = WidthSlider.Value.ToString();
         }
@@ -210,7 +217,7 @@ namespace camera_app
 
         private void HeightBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            HeightSlider.Value = evalTextInRange(HeightBox.Text, 1, AcquisitionHandler.MaxHeight);
+            HeightSlider.Value = evalTextInRange(HeightBox.Text, 1, acqHandler.MaxHeight);
         }
 
         private void XOffsetBox_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -254,6 +261,7 @@ namespace camera_app
             ControllerConnectedCheck.IsChecked = true;
             TriggerPeriodBox.Text = evalTextInRange(ControllerConfig.GetResponse("GTTP"), ControllerConfig.MinTimedTriggerPeriod, ControllerConfig.MaxTimedTriggerPeriod).ToString();
             NumberOfPulsesBox.Text = ControllerConfig.NumOfPulses.ToString();
+            updateHeightSliderMaximum();
             NumberOfPulsesBox_LostFocus(new object(), new RoutedEventArgs());
             enableControllerControls(true);
             outputText("Controller found");
@@ -282,6 +290,7 @@ namespace camera_app
             PulseConfigSelect.Items.Clear();
             for (uint i = 1; i <= numOfPulses; i++) PulseConfigSelect.Items.Add(i);
             PulseConfigSelect.SelectedIndex = 0;
+            updateHeightSliderMaximum();
         }
 
         private void PulsePeriodBox_PreviewKeyDown(object sender, KeyEventArgs e)

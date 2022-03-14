@@ -18,11 +18,11 @@ namespace camera_app
         "Basler raL6144-16gm"
         };
 
-        public static long MaxWidth = 0;
-        public static long MaxHeight = 0;
-        static public long OrigWidth = 1;
-        static public long OrigHeight = 1;
-        static public long OrigXOffset = 0;
+        public long MaxWidth = 0;
+        public long MaxHeight = 0;
+        public long OrigWidth = 1;
+        public long OrigHeight = 1;
+        public long OrigXOffset = 0;
 
         static public event EventHandler CameraDisconnected;
 
@@ -39,13 +39,29 @@ namespace camera_app
             if (grabResult.GrabSucceeded)
             {
                 byte[] buffer = grabResult.PixelData as byte[];
-                ImageWindow.DisplayImage(0, grabResult);
-                
+                //ImageWindow.DisplayImage(0, grabResult);
+                ImageWindow.DisplayImage<byte>(0, buffer, grabResult.PixelTypeValue, grabResult.Width, grabResult.Height, grabResult.PaddingX,grabResult.Orientation);
             }
             else
             {
                 
             }
+        }
+
+        public bool SetWidth(long width)
+        {
+            try
+            {
+                Camera.Open();
+                Camera.Parameters[PLCamera.Width].TrySetValue(width, IntegerValueCorrection.Nearest);
+            }
+            catch
+            {
+                Camera.Close();
+                return false;
+            }
+            MaxHeight = Camera.Parameters[PLCamera.Height].GetMaximum();
+            return true;
         }
 
         public bool SetModel(string camera)
