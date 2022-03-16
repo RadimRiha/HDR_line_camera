@@ -13,5 +13,10 @@ namespace camera_app
     /// </summary>
     public partial class App : Application
     {
+        static public event EventHandler ApplicationExitEvent;
+        private void Application_Exit(object sender, ExitEventArgs e)
+        {
+            if (ApplicationExitEvent != null) ApplicationExitEvent(new object(), e);
+        }
     }
 }

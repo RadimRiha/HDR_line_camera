@@ -23,9 +23,8 @@ namespace camera_app
     {
         private static bool loaded = false;
         private static AcquisitionHandler acqHandler = new AcquisitionHandler();
-        private static event EventHandler applicationExit;
         
-        private void onApplicationExit(object sender, EventArgs e)
+        private void applicationExitEventHandler(object sender, EventArgs e)
         {
             acqHandler.Camera.Close();
         }
@@ -36,11 +35,15 @@ namespace camera_app
         }
         private void imageGrabbedEventHandler(object sender, EventArgs e)
         {
-            this.Dispatcher.Invoke(() =>
+            try
             {
-                ImagesLabel.Content = acqHandler.GrabbedImagesOkCount;
-                ErrorsLabel.Content = acqHandler.GrabbedImagesFailCount;
-            });
+                this.Dispatcher.Invoke(() =>
+                {
+                    ImagesLabel.Content = acqHandler.GrabbedImagesOkCount;
+                    ErrorsLabel.Content = acqHandler.GrabbedImagesFailCount;
+                });
+            }
+            catch { }
         }
         private void refreshDevices()
         {
@@ -120,7 +123,7 @@ namespace camera_app
             refreshDevices();
             acqHandler.CameraDisconnectedEvent += new EventHandler(cameraDisconnectedEventHandler);
             acqHandler.ImageGrabbedEvent += new EventHandler(imageGrabbedEventHandler);
-            MainWindow.applicationExit += new EventHandler(this.onApplicationExit);
+            App.ApplicationExitEvent += new EventHandler(applicationExitEventHandler);
         }
 
         private void DeviceSelectButton_Click(object sender, RoutedEventArgs e)

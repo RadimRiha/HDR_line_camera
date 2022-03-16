@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:camera_app"
         mc:Ignorable="d"
         Title="MainWindow" Height="478.5" Width="759.5" Loaded="Window_Loaded">
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="42"/>
