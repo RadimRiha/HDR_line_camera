@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:camera_app"
         mc:Ignorable="d"
-        Title="MainWindow" Height="478.5" Width="751.5" Loaded="Window_Loaded">
+        Title="MainWindow" Height="478.5" Width="759.5" Loaded="Window_Loaded">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="42"/>
@@ -48,7 +48,7 @@
         <ComboBox x:Name="DeviceSelect" Margin="10,10,10,0" VerticalAlignment="Top" Grid.ColumnSpan="4" Height="22"/>
         <Button x:Name="DeviceSelectButton" Content="Select device" Margin="42,10,0,0" VerticalAlignment="Top" Height="22" Click="DeviceSelectButton_Click" Grid.Column="4" HorizontalAlignment="Left" Width="78"/>
         <Button x:Name="StartAcquisition" Content="▶" HorizontalContentAlignment="Center" Margin="10,10,0,0" VerticalContentAlignment="Center" Click="StartAcquisition_Click" FontSize="14" Height="22" VerticalAlignment="Top" HorizontalAlignment="Left" Width="22" Grid.Column="5"/>
-        <Button x:Name="StopAcquisition" Content="■" HorizontalContentAlignment="Center" Margin="44,10,0,0" VerticalContentAlignment="Center" Click="StopAcquisition_Click" FontSize="14" Height="22" VerticalAlignment="Top" HorizontalAlignment="Left" Width="22" Grid.Column="5"/>
+        <Button x:Name="StopAcquisition" Content="■" HorizontalContentAlignment="Center" Margin="42,10,0,0" VerticalContentAlignment="Center" Click="StopAcquisition_Click" FontSize="14" Height="22" VerticalAlignment="Top" HorizontalAlignment="Left" Width="22" Grid.Column="5"/>
         <Button x:Name="Refresh" Content="↻" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="22" Height="22" Click="Refresh_Click" Grid.Column="4"/>
         <TextBox x:Name="WidthBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="2" TextWrapping="Wrap" Text="1" PreviewKeyDown="WidthBox_PreviewKeyDown" Margin="5,5,10,0" LostFocus="WidthBox_LostFocus"/>
         <TextBox x:Name="HeightBox" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="3" TextWrapping="Wrap" Text="1" PreviewKeyDown="HeightBox_PreviewKeyDown" Margin="5,5,10,0" LostFocus="HeightBox_LostFocus"/>
@@ -102,6 +102,10 @@
         <RichTextBox x:Name="OutBox" IsReadOnly = "True" Grid.ColumnSpan="3" Grid.Column="3" Grid.Row="3" Grid.RowSpan="16" Margin="10,0,10,10">
         </RichTextBox>
         <Label Content="Output:" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="2" Margin="10,0,0,0" Grid.Column="3"/>
+        <Label Content="Images:" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Margin="84,10,0,0" Grid.Column="5" Height="22" VerticalAlignment="Top" FontSize="10" HorizontalAlignment="Left" Width="44"/>
+        <Label x:Name="ImagesLabel" Content="0" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Margin="128,11,0,0" Grid.Column="5" Height="22" VerticalAlignment="Top" FontSize="10" Width="44" HorizontalAlignment="Left"/>
+        <Label Content="Errors:" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Margin="172,10,0,0" Grid.Column="5" Height="22" VerticalAlignment="Top" FontSize="10" Width="44" HorizontalAlignment="Left"/>
+        <Label x:Name="ErrorsLabel" Content="0" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Margin="216,10,0,0" Grid.Column="5" Height="22" VerticalAlignment="Top" FontSize="10" HorizontalAlignment="Left" Width="44"/>
 
     </Grid>
 </Window>

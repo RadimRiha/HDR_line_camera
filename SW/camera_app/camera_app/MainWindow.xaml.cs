@@ -29,10 +29,18 @@ namespace camera_app
         {
             acqHandler.Camera.Close();
         }
-        private void cameraDisconnected(object sender, EventArgs e)
+        private void cameraDisconnectedEventHandler(object sender, EventArgs e)
         {
             outputText("Camera disconnected");
             StopAcquisition_Click(new object(), new RoutedEventArgs());
+        }
+        private void imageGrabbedEventHandler(object sender, EventArgs e)
+        {
+            this.Dispatcher.Invoke(() =>
+            {
+                ImagesLabel.Content = acqHandler.GrabbedImagesOkCount;
+                ErrorsLabel.Content = acqHandler.GrabbedImagesFailCount;
+            });
         }
         private void refreshDevices()
         {
@@ -110,7 +118,8 @@ namespace camera_app
             enableCameraControls(false);
             enableControllerControls(false);
             refreshDevices();
-            AcquisitionHandler.CameraDisconnected += new EventHandler(cameraDisconnected);
+            acqHandler.CameraDisconnectedEvent += new EventHandler(cameraDisconnectedEventHandler);
+            acqHandler.ImageGrabbedEvent += new EventHandler(imageGrabbedEventHandler);
             MainWindow.applicationExit += new EventHandler(this.onApplicationExit);
         }
 
@@ -164,6 +173,8 @@ namespace camera_app
             enableControllerControls(false);
             DeviceSelectButton.IsEnabled = false;
             SearchControllerButton.IsEnabled = false;
+            ImagesLabel.Content = 0;
+            ErrorsLabel.Content = 0;
         }
 
         private void StopAcquisition_Click(object sender, RoutedEventArgs e)

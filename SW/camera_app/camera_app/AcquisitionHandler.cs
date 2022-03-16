@@ -27,11 +27,12 @@ namespace camera_app
         public long GrabbedImagesOkCount = 0;
         public long GrabbedImagesFailCount = 0;
 
-        static public event EventHandler CameraDisconnected;
+        public event EventHandler CameraDisconnectedEvent;
+        public event EventHandler ImageGrabbedEvent;
 
-        static private void onCameraDisconnected(Object sender, EventArgs e)
+        private void onCameraDisconnected(Object sender, EventArgs e)
         {
-            if (CameraDisconnected != null) CameraDisconnected(new object(), e);
+            if (CameraDisconnectedEvent != null) CameraDisconnectedEvent(new object(), e);
         }
 
         private void onImageGrabbed(Object sender, ImageGrabbedEventArgs e)
@@ -42,16 +43,13 @@ namespace camera_app
             if (grabResult.GrabSucceeded)
             {
                 GrabbedImagesOkCount++;
-
-                //byte[] buffer = grabResult.PixelData as byte[];
-                //ImageWindow.DisplayImage(0, grabResult);
                 FrameProcessor.ProcessGrabResult(grabResult, ControllerConfig.NumOfPulses);
-                //ImageWindow.DisplayImage<byte>(0, buffer, grabResult.PixelTypeValue, grabResult.Width, grabResult.Height, grabResult.PaddingX,grabResult.Orientation);
             }
             else
             {
                 GrabbedImagesFailCount++;
             }
+            if (ImageGrabbedEvent != null) ImageGrabbedEvent(new object(), e);
         }
 
         public bool SetWidth(long width)
