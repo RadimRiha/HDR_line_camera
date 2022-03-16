@@ -93,6 +93,12 @@ namespace camera_app
             HeightSlider.Maximum = acqHandler.MaxHeight / Convert.ToUInt32(NumberOfPulsesBox.Text);
         }
 
+        private void updateTriggerControls()
+        {
+            TriggerPeriodBox.IsEnabled = TriggerSource.SelectedIndex == 2;
+            TriggerPolarity.IsEnabled = TriggerSource.SelectedIndex == 3;
+        }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -147,7 +153,7 @@ namespace camera_app
                 return;
             }
             outputText("Controller configuration OK");
-            if (!acqHandler.Start())
+            if (!acqHandler.StartGrabbing())
             {
                 outputText("Acquisition initialization FAIL");
                 return;
@@ -162,7 +168,7 @@ namespace camera_app
 
         private void StopAcquisition_Click(object sender, RoutedEventArgs e)
         {
-            acqHandler.Stop();
+            acqHandler.StopGrabbing();
             enableCameraControls(true);
             StopAcquisition.IsEnabled = false;
             enableControllerControls(true);
@@ -286,7 +292,6 @@ namespace camera_app
         {
             uint numOfPulses = (uint)evalTextInRange(NumberOfPulsesBox.Text, 1, ControllerConfig.MaxNumPulses);
             NumberOfPulsesBox.Text = numOfPulses.ToString();
-            ControllerConfig.NumOfPulses = numOfPulses;
             PulseConfigSelect.Items.Clear();
             for (uint i = 1; i <= numOfPulses; i++) PulseConfigSelect.Items.Add(i);
             PulseConfigSelect.SelectedIndex = 0;
@@ -318,12 +323,6 @@ namespace camera_app
                 PulsePeriodBox.Text = ControllerConfig.PulsePeriod[PulseConfigSelect.SelectedIndex].ToString();
             }
             catch { }
-        }
-
-        private void updateTriggerControls()
-        {
-            TriggerPeriodBox.IsEnabled = TriggerSource.SelectedIndex == 2;
-            TriggerPolarity.IsEnabled = TriggerSource.SelectedIndex == 3;
         }
 
         private void TriggerSource_SelectionChanged(object sender, SelectionChangedEventArgs e)

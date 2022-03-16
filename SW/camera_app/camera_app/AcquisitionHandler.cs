@@ -24,6 +24,9 @@ namespace camera_app
         public long OrigHeight = 1;
         public long OrigXOffset = 0;
 
+        public long GrabbedImagesOkCount = 0;
+        public long GrabbedImagesFailCount = 0;
+
         static public event EventHandler CameraDisconnected;
 
         static private void onCameraDisconnected(Object sender, EventArgs e)
@@ -31,20 +34,23 @@ namespace camera_app
             if (CameraDisconnected != null) CameraDisconnected(new object(), e);
         }
 
-        static private void onImageGrabbed(Object sender, ImageGrabbedEventArgs e)
+        private void onImageGrabbed(Object sender, ImageGrabbedEventArgs e)
         {
             // The grab result is automatically disposed when the event call back returns.
             // The grab result can be cloned using IGrabResult.Clone if you want to keep a copy of it (not shown in this sample).
             IGrabResult grabResult = e.GrabResult;
             if (grabResult.GrabSucceeded)
             {
-                byte[] buffer = grabResult.PixelData as byte[];
+                GrabbedImagesOkCount++;
+
+                //byte[] buffer = grabResult.PixelData as byte[];
                 //ImageWindow.DisplayImage(0, grabResult);
-                ImageWindow.DisplayImage<byte>(0, buffer, grabResult.PixelTypeValue, grabResult.Width, grabResult.Height, grabResult.PaddingX,grabResult.Orientation);
+                FrameProcessor.ProcessGrabResult(grabResult, ControllerConfig.NumOfPulses);
+                //ImageWindow.DisplayImage<byte>(0, buffer, grabResult.PixelTypeValue, grabResult.Width, grabResult.Height, grabResult.PaddingX,grabResult.Orientation);
             }
             else
             {
-                
+                GrabbedImagesFailCount++;
             }
         }
 
@@ -61,6 +67,7 @@ namespace camera_app
                 return false;
             }
             MaxHeight = Camera.Parameters[PLCamera.Height].GetMaximum();
+            Camera.Close();
             return true;
         }
 
@@ -104,6 +111,7 @@ namespace camera_app
                 Camera.Close();
                 return false;
             }
+            Camera.Close();
             return true;
         }
 
@@ -112,6 +120,7 @@ namespace camera_app
             if (Camera == null) return false;
             try
             {
+                Camera.Open();
                 Camera.Parameters[PLCamera.Width].TrySetValue(frameWidth, IntegerValueCorrection.Nearest);
                 Camera.Parameters[PLCamera.Height].TrySetValue(frameHeight, IntegerValueCorrection.Nearest);
                 Camera.Parameters[PLCamera.OffsetX].TrySetValue(XOffset, IntegerValueCorrection.Nearest);
@@ -127,20 +136,27 @@ namespace camera_app
                 Camera.Close();
                 return false;
             }
+            Camera.Close();
             return true;
         }
 
-        public bool Start()
+        public bool StartGrabbing()
         {
             if (Camera == null) return false;
+            try { Camera.Open(); }
+            catch { return false; }
             Camera.StreamGrabber.Start(GrabStrategy.OneByOne, GrabLoop.ProvidedByStreamGrabber);
+            GrabbedImagesOkCount = 0;
+            GrabbedImagesFailCount = 0;
+            FrameProcessor.CloseWindows();
             return true;
         }
 
-        public bool Stop()
+        public bool StopGrabbing()
         {
             if (Camera == null) return false;
             Camera.StreamGrabber.Stop();
+            Camera.Close();
             return true;
         }
     }

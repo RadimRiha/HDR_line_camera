@@ -98,6 +98,7 @@ namespace camera_app
             success &= trySet("STRS" + triggerSource.ToString());
             success &= trySet("STTP" + trigerPeriod.ToString());
             success &= trySet("SHTP" + triggerPolarity.ToString());
+            NumOfPulses = numberOfPulses;
             return success;
         }
     }
