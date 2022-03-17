@@ -162,7 +162,10 @@ uint8_t changeTriggerSource(triggerSources source) {
 	uint8_t retVal = 1;
 	switch(source) {
 		case FREE:
-			if(PIND & (1<<2)) cameraReady = 0;	//simulate rising edge if camera is already ready
+			if(PIND & (1<<2)) {		//simulate rising edge if camera is already ready
+				cameraReady = 0;
+				checkCameraReadyStatus();
+			}
 		break;
 		case TIMED:
 			TCNT1 = 0;	//reset timed trigger
@@ -330,8 +333,10 @@ int main(void) {
 	usartInit();
 	sei();
 	
+	checkCameraReadyStatus();
+	
     while(1) {
 		processUsart();
-		//checkCameraReadyStatus();	//check status periodically (camera can be ready at startup - does not generate rising edge interrupt)
+		//checkCameraReadyStatus();	//DO NOT DO THIS, MARGINAL BEHAVIOUR
     }
 }

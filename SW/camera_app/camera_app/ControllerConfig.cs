@@ -95,9 +95,9 @@ namespace camera_app
             bool success = true;
             success &= trySet("SPUO" + String.Join(",", new ArraySegment<uint>(PulseOutput, 0, (int)numberOfPulses).ToArray()));
             success &= trySet("SPUP" + String.Join(",", new ArraySegment<uint>(PulsePeriod, 0, (int)numberOfPulses).ToArray()));
-            success &= trySet("STRS" + triggerSource.ToString());
             success &= trySet("STTP" + trigerPeriod.ToString());
             success &= trySet("SHTP" + triggerPolarity.ToString());
+            success &= trySet("STRS" + triggerSource.ToString());
             NumOfPulses = numberOfPulses;
             return success;
         }

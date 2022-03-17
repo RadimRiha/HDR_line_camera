@@ -68,6 +68,7 @@ uint8_t loadSettings() {
 	for(uint8_t i = 0; i < MAX_PULSE_CONFIGS+1; i++) {
 		acqSettings.pulsePeriod[i] = load16(ADDR_PUP+i*2);
 	}
+	precomputePulseTimerParameters();
 	
 	//load TRS
 	acqSettings.triggerSource = load(ADDR_TRS);

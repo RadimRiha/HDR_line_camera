@@ -14,4 +14,6 @@
 void saveSettings();
 uint8_t loadSettings();
 
+extern void precomputePulseTimerParameters();
+
 #endif
