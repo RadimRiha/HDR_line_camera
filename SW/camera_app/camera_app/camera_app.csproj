@@ -67,6 +67,7 @@
     </Compile>
     <Compile Include="ControllerConfig.cs" />
     <Compile Include="FrameProcessor.cs" />
+    <Compile Include="HdrProcessor.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

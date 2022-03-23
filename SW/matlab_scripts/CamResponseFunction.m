@@ -10,6 +10,8 @@ response2 = camresponse(batScans,'ExposureTimes',batExpTimes);
 response2 = response2(:,1);
 range = 0:length(response1)-1;
 
+writematrix(response2','responseFunction.csv')
+
 figure
 hold on
 plot(response1,range);

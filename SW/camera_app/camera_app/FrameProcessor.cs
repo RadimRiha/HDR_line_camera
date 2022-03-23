@@ -28,6 +28,8 @@ namespace camera_app
                 separatedImages.Add(partialImage);
                 ImageWindow.DisplayImage<byte>(iIndex + 1, partialImage, grabResult.PixelTypeValue, imageWidth, partialImageHeight, grabResult.PaddingX, grabResult.Orientation);
             }
+
+            ImageWindow.DisplayImage((int)numOfPulses + 1, HdrProcessor.ConstructHdr(separatedImages), grabResult.PixelTypeValue, imageWidth, partialImageHeight, grabResult.PaddingX, grabResult.Orientation);
         }
 
         static public void CloseWindows()
