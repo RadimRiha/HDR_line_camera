@@ -2,6 +2,10 @@ Debug
 Release
 Gerber
 
+*.png
+*.asv
+*.bmp
+
 *.zip
 
 *.s#*
