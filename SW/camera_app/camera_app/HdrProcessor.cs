@@ -17,6 +17,11 @@ namespace camera_app
             else return Zmax - Z;
         }
 
+        private static double normalize(double val, double min, double max)
+        {
+            return (val - min) / (max - min);
+        }
+
         public static double[] ConstructHdr(List<byte[]> sourceImages)
         {
             double[] result = new double[sourceImages[0].Length];
@@ -30,22 +35,46 @@ namespace camera_app
                 for (int i = 0; i < ControllerConfig.NumOfPulses; i++)  //iterate over every image
                 {
                     pixelValue = sourceImages[i][p];
-                    numerator += hatFunction(pixelValue, 0xff) * (CameraResponse[pixelValue] - Math.Log(ControllerConfig.PulsePeriod[i] / Math.Pow(10, 6)));
+                    numerator += hatFunction(pixelValue, 0xff) * (CameraResponse[pixelValue] - Math.Log((double)ControllerConfig.PulsePeriod[i] / Math.Pow(10, 6)));
                     denominator += hatFunction(pixelValue, 0xff);
                 }
-                result[p] = numerator / denominator;
+                if (denominator > 0) result[p] = numerator / denominator;
+                else
+                {
+                    int middleImg = (int)(ControllerConfig.NumOfPulses / 2);
+                    result[p] = CameraResponse[sourceImages[middleImg][p]] - Math.Log((double)ControllerConfig.PulsePeriod[middleImg] / Math.Pow(10, 6));
+                }
             }
             return result;
         }
 
-        public static byte[] ToneMap(double[] hdrImage)
+        public static byte[] ToneMap(double[] hdrImage, uint bitDepth)
         {
+            
+            double maxVal = Math.Pow(2, bitDepth);
+            /*
+            double b = 0.85;
+            double gamma = 2.2;
+            double Ldmax = 100;
+            double Lwmax = hdrImage.Max();
             byte[] result = new byte[hdrImage.Length];
             for (int p = 0; p < result.Length; p++)    //iterate over every pixel
             {
-                
+                double Lw = hdrImage[p];
+                double res = maxVal * Ldmax * 0.01 * Math.Log(Lw + 1) / (Math.Log10(Lwmax + 1) * Math.Log(2 + 8 * Math.Pow(Lw / Lwmax, Math.Log(b) / Math.Log(0.5))));
+                result[p] = (byte)res;
+                //result[p] = (byte)Math.Pow(result[p], 1 / gamma);
             }
-            return new byte[0];
+            return result;*/
+
+            byte[] result = new byte[hdrImage.Length];
+            double maxIntensity = hdrImage.Max();
+            double minIntensity = hdrImage.Min();
+            for (int p = 0; p < result.Length; p++)    //iterate over every pixel
+            {
+                result[p] = (byte)(normalize(hdrImage[p], minIntensity, maxIntensity) * maxVal);
+            }
+            return result;
         }
     }
 }

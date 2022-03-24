@@ -29,7 +29,7 @@ namespace camera_app
                 ImageWindow.DisplayImage<byte>(iIndex + 1, partialImage, grabResult.PixelTypeValue, imageWidth, partialImageHeight, grabResult.PaddingX, grabResult.Orientation);
             }
 
-            ImageWindow.DisplayImage((int)numOfPulses + 1, HdrProcessor.ConstructHdr(separatedImages), grabResult.PixelTypeValue, imageWidth, partialImageHeight, grabResult.PaddingX, grabResult.Orientation);
+            ImageWindow.DisplayImage((int)numOfPulses + 1, HdrProcessor.ToneMap(HdrProcessor.ConstructHdr(separatedImages), 8), grabResult.PixelTypeValue, imageWidth, partialImageHeight, grabResult.PaddingX, grabResult.Orientation);
         }
 
         static public void CloseWindows()
