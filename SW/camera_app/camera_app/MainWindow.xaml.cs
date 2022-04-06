@@ -79,6 +79,8 @@ namespace camera_app
             PulseConfigSelect.IsEnabled = enabled;
             PulseOutput.IsEnabled = enabled;
             PulsePeriodBox.IsEnabled = enabled;
+            ConstructHdrCheck.IsEnabled = enabled;
+            ConstructRgbCheck.IsEnabled = enabled;
             if (enabled) updateTriggerControls();
         }
 
@@ -343,6 +345,18 @@ namespace camera_app
         {
             if (!loaded) return;
             updateTriggerControls();
+        }
+
+        private void ConstructHdrCheck_Click(object sender, RoutedEventArgs e)
+        {
+            if (ConstructHdrCheck.IsChecked ?? false) FrameProcessor.ConstructHdr = true;
+            else FrameProcessor.ConstructHdr = false;
+        }
+
+        private void ConstructRgbCheck_Click(object sender, RoutedEventArgs e)
+        {
+            if (ConstructRgbCheck.IsChecked ?? false) FrameProcessor.ConstructRgb = true;
+            else FrameProcessor.ConstructRgb = false;
         }
     }
 }
