@@ -22,6 +22,8 @@ namespace camera_app
         static public uint[] PulsePeriod = new uint[MaxNumPulses];
         static public uint NumOfPulses = 0;
 
+        static private uint triggerSource = 0;
+
         static public bool Search()
         {
             if (serialPort.IsOpen) serialPort.Close();
@@ -87,7 +89,14 @@ namespace camera_app
 
         static private bool trySet(string msg)
         {
-            return GetResponse(msg).StartsWith("OK");
+            string response = GetResponse(msg);
+            for (int i = 0; i < 3; i++) //retry a couple times, ignore overtriggers
+            {
+                if (response.StartsWith("OK")) return true;
+                else if (response.StartsWith("OVERTRIGGER")) response = GetResponse(msg);
+                else return false;
+            }
+            return false;
         }
 
         static public bool UploadConfig(uint triggerSource, uint trigerPeriod, uint triggerPolarity, uint numberOfPulses)
@@ -101,12 +110,21 @@ namespace camera_app
             }
 
             bool success = true;
+            success &= EnableTriggering(false);
             success &= trySet("SPUO" + String.Join(",", new ArraySegment<uint>(modifiedPulseOutput, 0, (int)numberOfPulses).ToArray()));
             success &= trySet("SPUP" + String.Join(",", new ArraySegment<uint>(PulsePeriod, 0, (int)numberOfPulses).ToArray()));
             success &= trySet("STTP" + trigerPeriod.ToString());
             success &= trySet("SHTP" + triggerPolarity.ToString());
-            success &= trySet("STRS" + triggerSource.ToString());
+            ControllerConfig.triggerSource = triggerSource;
             NumOfPulses = numberOfPulses;
+            return success;
+        }
+
+        static public bool EnableTriggering(bool enable)
+        {
+            bool success = true;
+            if (enable) success &= trySet("STRS" + triggerSource.ToString());
+            else success &= trySet("STRS0");    //trigger = none
             return success;
         }
     }
