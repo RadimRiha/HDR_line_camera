@@ -22,9 +22,9 @@ namespace camera_app
             return (val - min) / (max - min);
         }
 
-        public static double[] ConstructHdr(List<byte[]> sourceImages)
+        public static double[] ConstructHdr(List<Image> sourceImages)
         {
-            double[] result = new double[sourceImages[0].Length];
+            double[] result = new double[sourceImages[0].Data.Length];
             double numerator;
             double denominator;
             byte pixelValue;
@@ -34,21 +34,21 @@ namespace camera_app
                 denominator = 0;
                 for (int i = 0; i < sourceImages.Count; i++)  //iterate over every image
                 {
-                    pixelValue = sourceImages[i][p];
-                    numerator += hatFunction(pixelValue, 0xff) * (CameraResponse[pixelValue] - Math.Log((double)ControllerConfig.PulsePeriod[i] / Math.Pow(10, 6)));
+                    pixelValue = sourceImages[i].Data[p];
+                    numerator += hatFunction(pixelValue, 0xff) * (CameraResponse[pixelValue] - Math.Log(sourceImages[i].ExpTime / Math.Pow(10, 6)));
                     denominator += hatFunction(pixelValue, 0xff);
                 }
                 if (denominator > 0) result[p] = numerator / denominator;
                 else
                 {
-                    int middleImg = (int)(ControllerConfig.NumOfPulses / 2);
-                    result[p] = CameraResponse[sourceImages[middleImg][p]] - Math.Log((double)ControllerConfig.PulsePeriod[middleImg] / Math.Pow(10, 6));
+                    int middleImg = (int)(sourceImages.Count / 2);
+                    result[p] = CameraResponse[sourceImages[middleImg].Data[p]] - Math.Log(sourceImages[middleImg].ExpTime / Math.Pow(10, 6));
                 }
             }
             return result;
         }
 
-        public static byte[] ToneMap(double[] hdrImage, uint bitDepth)
+        public static Image ToneMap(double[] hdrImage, uint bitDepth)
         {
             
             double maxVal = Math.Pow(2, bitDepth);
@@ -67,12 +67,12 @@ namespace camera_app
             }
             return result;*/
 
-            byte[] result = new byte[hdrImage.Length];
+            Image result = new Image(new byte[hdrImage.Length], 0);
             double maxIntensity = hdrImage.Max();
             double minIntensity = hdrImage.Min();
-            for (int p = 0; p < result.Length; p++)    //iterate over every pixel
+            for (int p = 0; p < result.Data.Length; p++)    //iterate over every pixel
             {
-                result[p] = (byte)(normalize(hdrImage[p], minIntensity, maxIntensity) * maxVal);
+                result.Data[p] = (byte)(normalize(hdrImage[p], minIntensity, maxIntensity) * maxVal);
             }
             return result;
         }

@@ -13,40 +13,55 @@ namespace camera_app
         static public bool ConstructRgb = false;
 
         static private int currentImageWindow = 0;
+        
+        static private int imageWidth = 0;
+        static private int partialImageHeight = 0;
+        static private int paddingX = 0;
+        static private ImageOrientation orientation = 0;
+
+        static private void displayImage(Image img, PixelType pxType)
+        {
+            try
+            {
+                ImageWindow.DisplayImage<byte>(currentImageWindow, img.Data, pxType, imageWidth, partialImageHeight, paddingX, orientation);
+                currentImageWindow++;
+            }
+            catch { }
+        }
 
         static public void ProcessGrabResult(IGrabResult grabResult, uint numOfPulses)
         {
+            //init variables
             currentImageWindow = 0;
+            byte[] grab = grabResult.PixelData as byte[];
+            imageWidth = grabResult.Width;
+            partialImageHeight = grabResult.Height / (int)numOfPulses;
+            paddingX = grabResult.PaddingX;
+            orientation = grabResult.Orientation;
 
             //display original
-            ImageWindow.DisplayImage(currentImageWindow, grabResult);
-            currentImageWindow++;
+            displayImage(new Image(grab, 0), grabResult.PixelTypeValue);
 
             if (numOfPulses <= 1) return;
 
             //separate and display images
-            byte[] grab = grabResult.PixelData as byte[];
-            List<byte[]> separatedImages = new List<byte[]>((int)numOfPulses);
-            int imageWidth = grabResult.Width;
-            int partialImageHeight = grabResult.Height / (int)numOfPulses;
-
+            List<Image> separatedImages = new List<Image>((int)numOfPulses);
             for (int iIndex = 0; iIndex < numOfPulses; iIndex++)
             {
-                byte[] partialImage = new byte[imageWidth * partialImageHeight];
+                Image partialImage = new Image(new byte[imageWidth * partialImageHeight], ControllerConfig.PulsePeriod[iIndex]);
                 for (long line = 0; line < partialImageHeight; line++)
                 {
-                    Array.Copy(grab, imageWidth * (line * numOfPulses + iIndex), partialImage, line * imageWidth, imageWidth);
+                    Array.Copy(grab, imageWidth * (line * numOfPulses + iIndex), partialImage.Data, line * imageWidth, imageWidth);
                 }
                 separatedImages.Add(partialImage);
-                ImageWindow.DisplayImage<byte>(currentImageWindow, partialImage, grabResult.PixelTypeValue, imageWidth, partialImageHeight, grabResult.PaddingX, grabResult.Orientation);
-                currentImageWindow++;
+                displayImage(partialImage, grabResult.PixelTypeValue);
             }
 
             //split separated images into channels based on pulse output
-            List<List<byte[]>> channels = new List<List<byte[]>>();
+            List<List<Image>> channels = new List<List<Image>>();
             for (int channel = 0; channel < 5; channel++)
             {
-                List<byte[]> currentChannel = new List<byte[]>();
+                List<Image> currentChannel = new List<Image>();
                 //find all images that belong to current channel number
                 for (int iIndex = 0; iIndex < numOfPulses; iIndex++)
                 {
@@ -56,44 +71,35 @@ namespace camera_app
             }
 
             //process HDR on each channel separately
-            List<byte[]> hdrChannels = new List<byte[]>();
+            List<Image> hdrChannels = new List<Image>();
             if (ConstructHdr)
             {
-                foreach (List<byte[]> channel in channels)
+                foreach (List<Image> channel in channels)
                 {
                     if (channel.Count > 1) hdrChannels.Add(HdrProcessor.ToneMap(HdrProcessor.ConstructHdr(channel), 8));
                     else if (channel.Count == 1) hdrChannels.Add(channel[0]);
-                    else hdrChannels.Add(new byte[0]);
+                    else hdrChannels.Add(new Image(new byte[0], 0));
                 }
             }
 
             //display appropriate output
             if (ConstructHdr)
             {
+                for (int ch = 0; ch < channels.Count; ch++)
+                {
+                    if (channels[ch].Count > 1)  //display HDR images that were constructed from more than 1 image
+                    {
+                        displayImage(hdrChannels[ch], grabResult.PixelTypeValue);
+                    }
+                }
                 if (ConstructRgb)   //colored HDR image
                 {
-                    try
-                    {
-                        ImageWindow.DisplayImage(currentImageWindow, makeRgb(hdrChannels[1], hdrChannels[2], hdrChannels[3]), PixelType.RGB8planar, imageWidth, partialImageHeight, grabResult.PaddingX, grabResult.Orientation);
-                        currentImageWindow++;
-                    }
-                    catch { }
-                }
-                else    //HDR channels separately, no color mixing
-                {
-                    for (int ch = 0; ch < channels.Count; ch++)
-                    {
-                        if (channels[ch].Count > 1)  //display HDR images that were constructed from more than 1 image
-                        {
-                            ImageWindow.DisplayImage(currentImageWindow, hdrChannels[ch], grabResult.PixelTypeValue, imageWidth, partialImageHeight, grabResult.PaddingX, grabResult.Orientation);
-                            currentImageWindow++;
-                        }
-                    }
+                    displayImage(makeRgb(hdrChannels[1], hdrChannels[2], hdrChannels[3]), PixelType.RGB8planar);
                 }
             }
-            else if (ConstructRgb)  //mix RGB channels separately, no HDR processing
+            else
             {
-
+                
             }
         }
 
@@ -102,12 +108,12 @@ namespace camera_app
             for (int i = 0; i < currentImageWindow; i++) ImageWindow.Close(i);
         }
 
-        static private byte[] makeRgb(byte[] R, byte[] G, byte[] B)
+        static private Image makeRgb(Image R, Image G, Image B)
         {
-            byte[] result = new byte[new[] { R.Length, G.Length, B.Length }.Max() * 3];
-            Array.Copy(R, 0, result, 0, R.Length);
-            Array.Copy(G, 0, result, result.Length / 3, G.Length);
-            Array.Copy(B, 0, result, result.Length / 3 * 2, B.Length);
+            Image result = new Image(new byte[new[] { R.Data.Length, G.Data.Length, B.Data.Length }.Max() * 3], 0);
+            Array.Copy(R.Data, 0, result.Data, 0, R.Data.Length);
+            Array.Copy(G.Data, 0, result.Data, result.Data.Length / 3, G.Data.Length);
+            Array.Copy(B.Data, 0, result.Data, result.Data.Length / 3 * 2, B.Data.Length);
             return result;
         }
     }

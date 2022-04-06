@@ -174,6 +174,7 @@ namespace camera_app
             }
             outputText("Acquisition initialization OK");
             ControllerConfig.EnableTriggering(true);
+            ControllerConfig.EnableTriggering(true);
             enableCameraControls(false);
             StopAcquisition.IsEnabled = true;
             enableControllerControls(false);
