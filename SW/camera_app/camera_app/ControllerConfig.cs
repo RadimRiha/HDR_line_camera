@@ -92,8 +92,16 @@ namespace camera_app
 
         static public bool UploadConfig(uint triggerSource, uint trigerPeriod, uint triggerPolarity, uint numberOfPulses)
         {
+            uint[] modifiedPulseOutput = new uint[MaxNumPulses];
+            for (int p = 0; p < MaxNumPulses; p++)
+            {
+                //always activate line trigger together with light for now
+                if (PulseOutput[p] > 0) modifiedPulseOutput[p] = PulseOutput[p] + 4;
+                else modifiedPulseOutput[p] = PulseOutput[p];
+            }
+
             bool success = true;
-            success &= trySet("SPUO" + String.Join(",", new ArraySegment<uint>(PulseOutput, 0, (int)numberOfPulses).ToArray()));
+            success &= trySet("SPUO" + String.Join(",", new ArraySegment<uint>(modifiedPulseOutput, 0, (int)numberOfPulses).ToArray()));
             success &= trySet("SPUP" + String.Join(",", new ArraySegment<uint>(PulsePeriod, 0, (int)numberOfPulses).ToArray()));
             success &= trySet("STTP" + trigerPeriod.ToString());
             success &= trySet("SHTP" + triggerPolarity.ToString());

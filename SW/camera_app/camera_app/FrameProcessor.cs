@@ -61,7 +61,9 @@ namespace camera_app
             {
                 foreach (List<byte[]> channel in channels)
                 {
-                    if(channel.Count > 1) hdrChannels.Add(HdrProcessor.ToneMap(HdrProcessor.ConstructHdr(channel), 8));
+                    if (channel.Count > 1) hdrChannels.Add(HdrProcessor.ToneMap(HdrProcessor.ConstructHdr(channel), 8));
+                    else if (channel.Count == 1) hdrChannels.Add(channel[0]);
+                    else hdrChannels.Add(new byte[0]);
                 }
             }
 
@@ -70,14 +72,22 @@ namespace camera_app
             {
                 if (ConstructRgb)   //colored HDR image
                 {
-
+                    try
+                    {
+                        ImageWindow.DisplayImage(currentImageWindow, makeRgb(hdrChannels[1], hdrChannels[2], hdrChannels[3]), PixelType.RGB8planar, imageWidth, partialImageHeight, grabResult.PaddingX, grabResult.Orientation);
+                        currentImageWindow++;
+                    }
+                    catch { }
                 }
                 else    //HDR channels separately, no color mixing
                 {
-                    foreach (byte[] hdrChannel in hdrChannels)
+                    for (int ch = 0; ch < channels.Count; ch++)
                     {
-                        ImageWindow.DisplayImage(currentImageWindow, hdrChannel, grabResult.PixelTypeValue, imageWidth, partialImageHeight, grabResult.PaddingX, grabResult.Orientation);
-                        currentImageWindow++;
+                        if (channels[ch].Count > 1)  //display HDR images that were constructed from more than 1 image
+                        {
+                            ImageWindow.DisplayImage(currentImageWindow, hdrChannels[ch], grabResult.PixelTypeValue, imageWidth, partialImageHeight, grabResult.PaddingX, grabResult.Orientation);
+                            currentImageWindow++;
+                        }
                     }
                 }
             }
@@ -90,6 +100,15 @@ namespace camera_app
         static public void CloseWindows()
         {
             for (int i = 0; i < currentImageWindow; i++) ImageWindow.Close(i);
+        }
+
+        static private byte[] makeRgb(byte[] R, byte[] G, byte[] B)
+        {
+            byte[] result = new byte[new[] { R.Length, G.Length, B.Length }.Max() * 3];
+            Array.Copy(R, 0, result, 0, R.Length);
+            Array.Copy(G, 0, result, result.Length / 3, G.Length);
+            Array.Copy(B, 0, result, result.Length / 3 * 2, B.Length);
+            return result;
         }
     }
 }

@@ -32,7 +32,7 @@ namespace camera_app
             {
                 numerator = 0;
                 denominator = 0;
-                for (int i = 0; i < ControllerConfig.NumOfPulses; i++)  //iterate over every image
+                for (int i = 0; i < sourceImages.Count; i++)  //iterate over every image
                 {
                     pixelValue = sourceImages[i][p];
                     numerator += hatFunction(pixelValue, 0xff) * (CameraResponse[pixelValue] - Math.Log((double)ControllerConfig.PulsePeriod[i] / Math.Pow(10, 6)));
