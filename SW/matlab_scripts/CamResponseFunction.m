@@ -14,7 +14,7 @@ writematrix(response2','responseFunction.csv')
 
 figure
 hold on
-plot(response1,range);
+%plot(response1,range);
 plot(response2,range);
 xlabel('Log-Exposure');
 ylabel('Image Intensity');

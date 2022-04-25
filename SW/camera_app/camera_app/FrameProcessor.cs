@@ -33,7 +33,15 @@ namespace camera_app
         {
             //init variables
             currentImageWindow = 0;
-            byte[] grab = grabResult.PixelData as byte[];
+
+            byte[] grab = new byte[grabResult.PayloadSize];
+            byte[] grabRaw = grabResult.PixelData as byte[];
+
+            for (int p = 0; p < grab.Length; p++)    //iterate over every pixel
+            {
+                grab[p] = grabRaw[p];
+            }
+
             imageWidth = grabResult.Width;
             partialImageHeight = grabResult.Height / (int)numOfPulses;
             paddingX = grabResult.PaddingX;
@@ -89,7 +97,7 @@ namespace camera_app
                 {
                     if (channels[ch].Count > 1)  //display HDR images that were constructed from more than 1 image
                     {
-                        displayImage(hdrChannels[ch], grabResult.PixelTypeValue);
+                        displayImage(hdrChannels[ch], PixelType.Mono8);
                     }
                 }
                 if (ConstructRgb)   //colored HDR image

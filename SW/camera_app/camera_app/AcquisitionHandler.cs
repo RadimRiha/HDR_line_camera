@@ -143,7 +143,7 @@ namespace camera_app
             if (Camera == null) return false;
             try { Camera.Open(); }
             catch { return false; }
-            Camera.StreamGrabber.Start(GrabStrategy.OneByOne, GrabLoop.ProvidedByStreamGrabber);
+            Camera.StreamGrabber.Start(GrabStrategy.LatestImages, GrabLoop.ProvidedByStreamGrabber);
             GrabbedImagesOkCount = 0;
             GrabbedImagesFailCount = 0;
             FrameProcessor.CloseWindows();

@@ -17,17 +17,20 @@ namespace camera_app
             else return Zmax - Z;
         }
 
-        private static double normalize(double val, double min, double max)
-        {
-            return (val - min) / (max - min);
-        }
-
         public static double[] ConstructHdr(List<Image> sourceImages)
         {
             double[] result = new double[sourceImages[0].Data.Length];
             double numerator;
             double denominator;
             byte pixelValue;
+
+            //precomputed lookup table for logarithms of exposure times
+            double[] logExpTimes = new double[sourceImages.Count];
+            for (int i = 0; i < sourceImages.Count; i++)
+            {
+                logExpTimes[i] = Math.Log(sourceImages[i].ExpTime / Math.Pow(10, 6));
+            }
+
             for (int p = 0; p < result.Length; p++)    //iterate over every pixel
             {
                 numerator = 0;
@@ -35,14 +38,14 @@ namespace camera_app
                 for (int i = 0; i < sourceImages.Count; i++)  //iterate over every image
                 {
                     pixelValue = sourceImages[i].Data[p];
-                    numerator += hatFunction(pixelValue, 0xff) * (CameraResponse[pixelValue] - Math.Log(sourceImages[i].ExpTime / Math.Pow(10, 6)));
+                    numerator += hatFunction(pixelValue, 0xff) * (CameraResponse[pixelValue] - logExpTimes[i]);
                     denominator += hatFunction(pixelValue, 0xff);
                 }
                 if (denominator > 0) result[p] = numerator / denominator;
                 else
                 {
                     int middleImg = (int)(sourceImages.Count / 2);
-                    result[p] = CameraResponse[sourceImages[middleImg].Data[p]] - Math.Log(sourceImages[middleImg].ExpTime / Math.Pow(10, 6));
+                    result[p] = CameraResponse[sourceImages[middleImg].Data[p]] - logExpTimes[middleImg];
                 }
             }
             return result;
@@ -50,29 +53,13 @@ namespace camera_app
 
         public static Image ToneMap(double[] hdrImage, uint bitDepth)
         {
-            
-            double maxVal = Math.Pow(2, bitDepth);
-            /*
-            double b = 0.85;
-            double gamma = 2.2;
-            double Ldmax = 100;
-            double Lwmax = hdrImage.Max();
-            byte[] result = new byte[hdrImage.Length];
-            for (int p = 0; p < result.Length; p++)    //iterate over every pixel
-            {
-                double Lw = hdrImage[p];
-                double res = maxVal * Ldmax * 0.01 * Math.Log(Lw + 1) / (Math.Log10(Lwmax + 1) * Math.Log(2 + 8 * Math.Pow(Lw / Lwmax, Math.Log(b) / Math.Log(0.5))));
-                result[p] = (byte)res;
-                //result[p] = (byte)Math.Pow(result[p], 1 / gamma);
-            }
-            return result;*/
-
             Image result = new Image(new byte[hdrImage.Length], 0);
-            double maxIntensity = hdrImage.Max();
-            double minIntensity = hdrImage.Min();
-            for (int p = 0; p < result.Data.Length; p++)    //iterate over every pixel
+            //precomputed constants
+            double logMin = Math.Log10(hdrImage.Min());
+            double factor = (Math.Pow(2, bitDepth) - 1) / (Math.Log10(hdrImage.Max()) - logMin);
+            for (int p = 0; p < hdrImage.Length; p++)    //iterate over every pixel
             {
-                result.Data[p] = (byte)(normalize(hdrImage[p], minIntensity, maxIntensity) * maxVal);
+                result.Data[p] = (byte)((Math.Log10(hdrImage[p]) - logMin) * factor);
             }
             return result;
         }

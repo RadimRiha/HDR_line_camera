@@ -34,22 +34,19 @@ end
 hdr1 = makehdr(cellIm, 'RelativeExposure', expTimes./expTimes(1));
 hdr1 = hdr1(:,:,1);
 
-maxVal = 0xff;
-b = 0.85;
-Ldmax = 100;
-Lwmax = max(max(hdr1));
+maxVal = 255;
 tonemapped = zeros(2048,2048);
-gamma = 2.2;
 
 max = max(max(hdr2));
 min = min(min(hdr2));
+alpha = 0;
+tau = alpha * (max-min);
 
 for x = 1:2048
     for y = 1:2048
-        %tonemapped(x,y) = 256 * Ldmax * 0.01 * log(hdr1(x,y)+1) / (log10(Lwmax+1) * log(2+8*((hdr1(x,y)/Lwmax)^(log(b)/log(0.5)))));
-        tonemapped(x,y) = (hdr2(x,y) - min) / (max-min) * 256;
+        tonemapped(x,y) = (log(hdr2(x,y)+tau) - log(min+tau)) / (log(max+tau)-log(min+tau)) * maxVal;
     end
 end
 
-figure(1)
+figure
 imshow([tonemap(hdr1) tonemap(hdr2) tonemapped])
