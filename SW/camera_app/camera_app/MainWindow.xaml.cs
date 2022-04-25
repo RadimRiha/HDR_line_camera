@@ -81,6 +81,8 @@ namespace camera_app
             PulsePeriodBox.IsEnabled = enabled;
             ConstructHdrCheck.IsEnabled = enabled;
             ConstructRgbCheck.IsEnabled = enabled;
+            DisplayRawCheck.IsEnabled = enabled;
+            DisplayPartialCheck.IsEnabled = enabled;
             if (enabled) updateTriggerControls();
         }
 
@@ -359,6 +361,18 @@ namespace camera_app
         {
             if (ConstructRgbCheck.IsChecked ?? false) FrameProcessor.ConstructRgb = true;
             else FrameProcessor.ConstructRgb = false;
+        }
+
+        private void DisplayRawCheck_Click(object sender, RoutedEventArgs e)
+        {
+            if (DisplayRawCheck.IsChecked ?? false) FrameProcessor.DisplayRaw = true;
+            else FrameProcessor.DisplayRaw = false;
+        }
+
+        private void DisplayPartialCheck_Click(object sender, RoutedEventArgs e)
+        {
+            if (DisplayPartialCheck.IsChecked ?? false) FrameProcessor.DisplayPartial = true;
+            else FrameProcessor.DisplayPartial = false;
         }
     }
 }

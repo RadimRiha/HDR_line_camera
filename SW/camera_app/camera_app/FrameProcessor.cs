@@ -9,11 +9,13 @@ namespace camera_app
 {
     static class FrameProcessor
     {
+        static public bool DisplayRaw = false;
+        static public bool DisplayPartial = false;
         static public bool ConstructHdr = false;
         static public bool ConstructRgb = false;
 
         static private int currentImageWindow = 0;
-        
+
         static private int imageWidth = 0;
         static private int partialImageHeight = 0;
         static private int paddingX = 0;
@@ -48,7 +50,11 @@ namespace camera_app
             orientation = grabResult.Orientation;
 
             //display original
-            displayImage(new Image(grab, 0), grabResult.PixelTypeValue);
+            if (DisplayRaw)
+            {
+                ImageWindow.DisplayImage(currentImageWindow, grabResult);
+                currentImageWindow++;
+            }
 
             if (numOfPulses <= 1) return;
 
@@ -62,7 +68,7 @@ namespace camera_app
                     Array.Copy(grab, imageWidth * (line * numOfPulses + iIndex), partialImage.Data, line * imageWidth, imageWidth);
                 }
                 separatedImages.Add(partialImage);
-                displayImage(partialImage, grabResult.PixelTypeValue);
+                if (DisplayPartial) displayImage(partialImage, grabResult.PixelTypeValue);
             }
 
             //split separated images into channels based on pulse output
@@ -105,9 +111,10 @@ namespace camera_app
                     displayImage(makeRgb(hdrChannels[1], hdrChannels[2], hdrChannels[3]), PixelType.RGB8planar);
                 }
             }
-            else
+            else if (ConstructRgb)
             {
-                
+                try { displayImage(makeRgb(channels[1][1], channels[2][1], channels[3][1]), PixelType.RGB8planar); }
+                catch { return; }
             }
         }
 

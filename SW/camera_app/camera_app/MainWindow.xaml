@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:camera_app"
         mc:Ignorable="d"
-        Title="MainWindow" Height="575" Width="755.5" Loaded="Window_Loaded">
+        Title="MainWindow" Height="599" Width="750.5" Loaded="Window_Loaded">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -30,18 +30,20 @@
             <RowDefinition Height="25"/>
             <RowDefinition Height="25"/>
             <RowDefinition Height="25"/>
+            <RowDefinition Height="25"/>
+            <RowDefinition Height="25"/>
             <RowDefinition/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="70"/>
             <ColumnDefinition Width="70"/>
             <ColumnDefinition Width="60"/>
-            <ColumnDefinition Width="110"/>
+            <ColumnDefinition Width="50"/>
             <ColumnDefinition Width="130"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
 
-        <Border BorderBrush="Black" BorderThickness="0,1,1,0" Grid.ColumnSpan="3" Grid.Row="6" Grid.RowSpan="17"/>
+        <Border BorderBrush="Black" BorderThickness="0,1,1,0" Grid.ColumnSpan="3" Grid.Row="6" Grid.RowSpan="18"/>
 
         <Border BorderBrush="Black" BorderThickness="0,0,1,0" Grid.ColumnSpan="3" Grid.Row="1" Grid.RowSpan="5"/>
 
@@ -49,7 +51,7 @@
 
         <Border BorderBrush="Black" BorderThickness="0,0,1,1" Grid.ColumnSpan="5"/>
 
-        <ComboBox x:Name="DeviceSelect" Margin="10,10,10,0" VerticalAlignment="Top" Grid.ColumnSpan="4" Height="22"/>
+        <ComboBox x:Name="DeviceSelect" Margin="10,10,0,0" VerticalAlignment="Top" Grid.ColumnSpan="4" Height="22"/>
         <Button x:Name="DeviceSelectButton" Content="Select device" Margin="42,10,0,0" VerticalAlignment="Top" Height="22" Click="DeviceSelectButton_Click" Grid.Column="4" HorizontalAlignment="Left" Width="78"/>
         <Button x:Name="StartAcquisition" Content="▶" HorizontalContentAlignment="Center" Margin="10,10,0,0" VerticalContentAlignment="Center" Click="StartAcquisition_Click" FontSize="14" Height="22" VerticalAlignment="Top" HorizontalAlignment="Left" Width="22" Grid.Column="5"/>
         <Button x:Name="StopAcquisition" Content="■" HorizontalContentAlignment="Center" Margin="42,10,0,0" VerticalContentAlignment="Center" Click="StopAcquisition_Click" FontSize="14" Height="22" VerticalAlignment="Top" HorizontalAlignment="Left" Width="22" Grid.Column="5"/>
@@ -103,18 +105,22 @@
         <Button x:Name="SearchControllerButton" Content="Search for controller" Margin="10,5,10,0" VerticalAlignment="Top" Height="20" Click="SearchControllerButton_Click" Grid.ColumnSpan="3" Grid.Row="7"/>
         <Label Content="Controller connected" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="8" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
         <CheckBox x:Name="ControllerConnectedCheck" Content="" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="8" Margin="5,0" IsEnabled="False"/>
-        <RichTextBox x:Name="OutBox" IsReadOnly = "True" Grid.ColumnSpan="3" Grid.Column="3" Grid.Row="3" Grid.RowSpan="20" Margin="10,0,10,10">
+        <RichTextBox x:Name="OutBox" IsReadOnly = "True" Grid.ColumnSpan="3" Grid.Column="3" Grid.Row="3" Grid.RowSpan="21" Margin="10,0,10,10">
         </RichTextBox>
-        <Label Content="Output:" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="2" Margin="10,0,0,0" Grid.Column="3"/>
+        <Label Content="Output:" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="2" Margin="10,0,0,0" Grid.Column="3" Grid.ColumnSpan="2"/>
         <Label Content="Images:" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Margin="84,10,0,0" Grid.Column="5" Height="22" VerticalAlignment="Top" FontSize="10" HorizontalAlignment="Left" Width="44"/>
         <Label x:Name="ImagesLabel" Content="0" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Margin="128,11,0,0" Grid.Column="5" Height="22" VerticalAlignment="Top" FontSize="10" Width="44" HorizontalAlignment="Left"/>
         <Label Content="Errors:" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Margin="172,10,0,0" Grid.Column="5" Height="22" VerticalAlignment="Top" FontSize="10" Width="44" HorizontalAlignment="Left"/>
         <Label x:Name="ErrorsLabel" Content="0" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Margin="216,10,0,0" Grid.Column="5" Height="22" VerticalAlignment="Top" FontSize="10" HorizontalAlignment="Left" Width="44"/>
-        <Label Content="Process HDR" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="19" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
-        <CheckBox x:Name="ConstructHdrCheck" Content="" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="19" Margin="5,0" Click="ConstructHdrCheck_Click"/>
-        <Label Content="Construct RGB" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="20" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
-        <CheckBox x:Name="ConstructRgbCheck" Content="" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="20" Margin="5,0" Click="ConstructRgbCheck_Click"/>
+        <Label Content="Process HDR" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="21" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
+        <CheckBox x:Name="ConstructHdrCheck" Content="" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="21" Margin="10,0,0,0" Click="ConstructHdrCheck_Click"/>
+        <Label Content="Construct RGB" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="22" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
+        <CheckBox x:Name="ConstructRgbCheck" Content="" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="22" Margin="10,0,0,0" Click="ConstructRgbCheck_Click"/>
         <Label Content="Image processing" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Row="18" Grid.ColumnSpan="3"/>
+        <CheckBox x:Name="DisplayPartialCheck" Content="" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="20" Margin="10,0,0,0" Click="DisplayPartialCheck_Click"/>
+        <CheckBox x:Name="DisplayRawCheck" Content="" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="2" Grid.Row="19" Margin="10,0,0,0" Click="DisplayRawCheck_Click"/>
+        <Label Content="Display raw data" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="19" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
+        <Label Content="Display partial images" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Grid.Row="20" Margin="10,0,0,0" Grid.ColumnSpan="2"/>
 
     </Grid>
 </Window>
