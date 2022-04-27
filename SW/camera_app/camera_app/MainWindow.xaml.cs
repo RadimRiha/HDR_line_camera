@@ -253,7 +253,7 @@ namespace camera_app
 
         private void XOffsetBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            XOffsetSlider.Value = evalTextInRange(HeightBox.Text, 0, Convert.ToInt64(XOffsetSlider.Maximum));
+            XOffsetSlider.Value = evalTextInRange(XOffsetBox.Text, 0, Convert.ToInt64(XOffsetSlider.Maximum));
         }
 
         private void CenterXCheck_Click(object sender, RoutedEventArgs e)

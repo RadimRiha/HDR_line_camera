@@ -35,15 +35,7 @@ namespace camera_app
         {
             //init variables
             currentImageWindow = 0;
-
-            byte[] grab = new byte[grabResult.PayloadSize];
-            byte[] grabRaw = grabResult.PixelData as byte[];
-
-            for (int p = 0; p < grab.Length; p++)    //iterate over every pixel
-            {
-                grab[p] = grabRaw[p];
-            }
-
+            byte[] grab = grabResult.PixelData as byte[];
             imageWidth = grabResult.Width;
             partialImageHeight = grabResult.Height / (int)numOfPulses;
             paddingX = grabResult.PaddingX;
@@ -113,7 +105,7 @@ namespace camera_app
             }
             else if (ConstructRgb)
             {
-                try { displayImage(makeRgb(channels[1][1], channels[2][1], channels[3][1]), PixelType.RGB8planar); }
+                try { displayImage(makeRgb(channels[1][0], channels[2][0], channels[3][0]), PixelType.RGB8planar); }
                 catch { return; }
             }
         }
