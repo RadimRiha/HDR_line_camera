@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:camera_app"
         mc:Ignorable="d"
-        Title="MainWindow" Height="599" Width="750.5" Loaded="Window_Loaded">
+        Title="Camera control" Height="599" Width="750.5" Loaded="Window_Loaded">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -47,9 +47,9 @@
 
         <Border BorderBrush="Black" BorderThickness="0,0,1,0" Grid.ColumnSpan="3" Grid.Row="1" Grid.RowSpan="5"/>
 
-        <Border BorderBrush="Black" BorderThickness="0,0,0,1" Grid.Column="5"/>
+        <Border BorderBrush="Black" BorderThickness="0,1" Grid.Column="5"/>
 
-        <Border BorderBrush="Black" BorderThickness="0,0,1,1" Grid.ColumnSpan="5"/>
+        <Border BorderBrush="Black" BorderThickness="0,1,1,1" Grid.ColumnSpan="5"/>
 
         <ComboBox x:Name="DeviceSelect" Margin="10,10,0,0" VerticalAlignment="Top" Grid.ColumnSpan="4" Height="22"/>
         <Button x:Name="DeviceSelectButton" Content="Select device" Margin="42,10,0,0" VerticalAlignment="Top" Height="22" Click="DeviceSelectButton_Click" Grid.Column="4" HorizontalAlignment="Left" Width="78"/>
