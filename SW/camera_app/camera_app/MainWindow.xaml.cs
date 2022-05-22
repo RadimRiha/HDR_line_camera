@@ -26,7 +26,7 @@ namespace camera_app
         
         private void applicationExitEventHandler(object sender, EventArgs e)
         {
-            acqHandler.Camera.Close();
+            if (acqHandler.Camera != null) acqHandler.Camera.Close();
         }
         private void cameraDisconnectedEventHandler(object sender, EventArgs e)
         {
