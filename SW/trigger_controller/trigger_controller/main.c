@@ -15,9 +15,9 @@ uint8_t precomputedTCCR0B[MAX_PULSE_CONFIGS+1];
 volatile uint8_t pulseTrainComplete = 1;
 volatile uint8_t pulseCount = 0;
 volatile uint8_t cameraReady = 0;
-
 volatile uint8_t cameraReadyChanged = 0;
-
+volatile uint8_t timedTrigger = 0;
+void checkCameraReady();
 void startPulseTimer();
 void trigger();
 void triggerNextExposure();
@@ -25,31 +25,34 @@ uint8_t changeTriggerSource(triggerSources source);
 
 uint32_t overtriggerCount = 0;
 
-ISR(TIMER0_COMPA_vect) {	//pulse timer end
+ISR(TIMER0_COMPA_vect) {	//pulse timer overflow
 	TCCR0B = 0;				//stop the timer
 	if(acqSettings.pulseOutput[pulseCount] == 0xFF) pulseTrainComplete = 1;
 }
 
-ISR(TIMER3_COMPA_vect) {					//timed trigger end
-	trigger();
+ISR(TIMER3_COMPA_vect) {					//timed trigger overflow
+	timedTrigger = 1;
 }
 
 ISR(INT0_vect) {			//line out 1 rising/falling edge
+	checkCameraReady();
+}
+
+void checkCameraReady(){
 	cameraReadyChanged = 1;
 	if(PIND & (1<<2)) cameraReady = 1;
 	else cameraReady = 0;
 }
 
 void triggerNextExposure() {
-	if(TCCR0B == 0) {	//pulse timer stopped (COMPA interrupt handled)
-		if(!pulseTrainComplete) startPulseTimer();	//another pulse
-		else if(acqSettings.triggerSource == FREE) trigger();	//FREE run mode triggering
-	}
+	if(!pulseTrainComplete) startPulseTimer();	//another pulse
+	else if(acqSettings.triggerSource == FREE) trigger();	//FREE run mode triggering
 }
 
 void startPulseTimer() {
 	OCR0A = precomputedOCR0A[pulseCount];
 	uint8_t TCCR0B_val = precomputedTCCR0B[pulseCount];
+	
 	TCCR0A &= ~((1<<COM0A1) | (1<<COM0B1));	//release pulse timer outputs
 	PORTC &= ~((1<<0) | (1<<1));	//clear light select (output goes to L1)
 	
@@ -154,7 +157,6 @@ uint8_t setTimedTriggerPeriod(uint16_t period) {
 }
 
 uint8_t changeTriggerSource(triggerSources source) {
-	cli();
 	TCCR3B &= ~(1<<CS31);	//disable timed trigger
 	TCCR0B = 0;	//stop pulse timer
 	pulseTrainComplete = 1;
@@ -186,7 +188,6 @@ uint8_t changeTriggerSource(triggerSources source) {
 		break;
 	}
 	acqSettings.triggerSource = source;
-	sei();
 	return retVal;
 }
 
@@ -212,7 +213,6 @@ void processUsart() {
 			//message[1-3] = XYZ - acronym for setting parameter
 			if(cmpString(USART0.inBuffer+1, "PUO\0")) {	//pulse output
 				triggerSources triggerMem = acqSettings.triggerSource;
-				changeTriggerSource(NONE);	//disable triggering for safety
 				uint16_t *values = stringToInts(USART0.inBuffer+4, ',');
 				for(uint8_t i = 0; i < 0xFF; i++) {
 					acqSettings.pulseOutput[i] = values[i];
@@ -230,7 +230,6 @@ void processUsart() {
 				acqSettings.triggerSource = triggerMem;	//restart previous trigger
 			}else if(cmpString(USART0.inBuffer+1, "PUP\0")) {	//pulse period
 				triggerSources triggerMem = acqSettings.triggerSource;
-				changeTriggerSource(NONE);	//disable triggering for safety
 				uint16_t *values = stringToInts(USART0.inBuffer+4, ',');
 				for(uint8_t i = 0; i < 0xFF; i++) {
 					acqSettings.pulsePeriod[i] = values[i];
@@ -317,7 +316,6 @@ int main(void) {
 	//timer 3 setup (timed trigger)
 	TCCR3B = (1<<WGM32);	//CTC mode
 	TIMSK3 = (1<<OCIE3A);	//enable COMPA interrupt
-	//setTimedTriggerPeriod(acqSettings.timedTriggerPeriod);
 	
 	//line out 1 interrupt
 	EICRA = (1<<ISC00);		//INT0 on logical change
@@ -332,15 +330,20 @@ int main(void) {
 	
 	setTimedTriggerPeriod(acqSettings.timedTriggerPeriod);
 	changeTriggerSource(acqSettings.triggerSource);
+	checkCameraReady();
 	
 	//triggerNextExposure();
 	
     while(1) {
-		if(cameraReadyChanged && cameraReady){
+		if(cameraReadyChanged){
 			if (cameraReady){
 				triggerNextExposure();
 			}
 			cameraReadyChanged = 0;
+		}
+		if (timedTrigger){
+			timedTrigger = 0;
+			trigger();
 		}
 		processUsart();
 		//triggerNextExposure();	//DO NOT DO THIS, MARGINAL BEHAVIOUR
