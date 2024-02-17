@@ -6,6 +6,7 @@
 #define MAX_PULSE_CONFIGS 10	//maximum number of pulse configurations
 #define MIN_EXP_TIME 2
 #define MAX_EXP_TIME 10000
+#define MAX_TIMED_PERIOD 30000
 
 typedef enum pulseOutputs {
 	T,

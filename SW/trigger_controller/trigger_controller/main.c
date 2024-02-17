@@ -16,82 +16,79 @@ volatile uint8_t pulseTrainComplete = 1;
 volatile uint8_t pulseCount = 0;
 volatile uint8_t cameraReady = 0;
 
+volatile uint8_t cameraReadyChanged = 0;
+
 void startPulseTimer();
-void startNewPulseTrain();
-void checkCameraReadyStatus();
+void trigger();
+void triggerNextExposure();
 uint8_t changeTriggerSource(triggerSources source);
+
+uint32_t overtriggerCount = 0;
 
 ISR(TIMER0_COMPA_vect) {	//pulse timer end
 	TCCR0B = 0;				//stop the timer
 	if(acqSettings.pulseOutput[pulseCount] == 0xFF) pulseTrainComplete = 1;
 }
 
-ISR(TIMER1_COMPA_vect) {					//timed trigger end
-	if(cameraReady && pulseTrainComplete) {	//camera can keep up
-		startNewPulseTrain();
-	}
-	else {									//camera can't keep up
-		changeTriggerSource(NONE);			//disable triggering
-		usartAddToOutBuffer("OVERTRIGGER\n\0");
-		usartSend();
-	}
+ISR(TIMER3_COMPA_vect) {					//timed trigger end
+	trigger();
 }
 
 ISR(INT0_vect) {			//line out 1 rising/falling edge
-	checkCameraReadyStatus();
+	cameraReadyChanged = 1;
+	if(PIND & (1<<2)) cameraReady = 1;
+	else cameraReady = 0;
 }
 
-void checkCameraReadyStatus() {
-	if(PIND & (1<<2)) {		//rising edge or high level of LINE OUT 1 (line trigger wait)
-		if(TCCR0B == 0 && !cameraReady) {	//pulse timer stopped (COMPA interrupt handled) and rising edge
-			cameraReady = 1;
-			if(!pulseTrainComplete) startPulseTimer();	//another pulse
-			else if(acqSettings.triggerSource == FREE) startNewPulseTrain();	//FREE run mode triggering
-		}
-	}
-	else {		//falling edge or low level of LINE OUT 1 (line trigger wait)
-		cameraReady = 0;
+void triggerNextExposure() {
+	if(TCCR0B == 0) {	//pulse timer stopped (COMPA interrupt handled)
+		if(!pulseTrainComplete) startPulseTimer();	//another pulse
+		else if(acqSettings.triggerSource == FREE) trigger();	//FREE run mode triggering
 	}
 }
 
 void startPulseTimer() {
 	OCR0A = precomputedOCR0A[pulseCount];
 	uint8_t TCCR0B_val = precomputedTCCR0B[pulseCount];
+	TCCR0A &= ~((1<<COM0A1) | (1<<COM0B1));	//release pulse timer outputs
+	PORTC &= ~((1<<0) | (1<<1));	//clear light select (output goes to L1)
 	
-	//pulse output select
-	TCCR0A = (1<<COM0B1) | (1<<WGM01) | (1<<WGM00);	//pulse output to light
-	PORTC &= ~((1<<0) | (1<<1));	//clear light select
 	switch (acqSettings.pulseOutput[pulseCount]) {
 		case T:
-			TCCR0A = (1<<COM0A1) | (1<<WGM01) | (1<<WGM00);	//pulse output to camera
+			//TCCR0A = (1<<COM0A1) | (1<<WGM01) | (1<<WGM00);	//pulse output to camera
+			TCCR0A |= (1<<COM0A1);	//pulse output to camera
 		break;
 		case L1:
 			//keep light select cleared
+			TCCR0A |= (1<<COM0B1);	// pulse output to light
 		break;
 		case L2:
 			PORTC |= (1<<0);
+			TCCR0A |= (1<<COM0B1);
 		break;
 		case L3:
 			PORTC |= (1<<1);
+			TCCR0A |= (1<<COM0B1);
 		break;
 		case L_ALL:
 			PORTC |= (1<<0) | (1<<1);
+			TCCR0A |= (1<<COM0B1);
 		break;
 		case L1T:
 			//keep light select cleared
-			TCCR0A |= (1<<COM0A1);	//pulse output to camera and light
+			TCCR0A |= (1<<COM0A1) | (1<<COM0B1);	//pulse output to camera and light
 		break;
 		case L2T:
 			PORTC |= (1<<0);
-			TCCR0A |= (1<<COM0A1);
+			TCCR0A |= (1<<COM0A1) | (1<<COM0B1);
 		break;
 		case L3T:
 			PORTC |= (1<<1);
-			TCCR0A |= (1<<COM0A1);
+			TCCR0A |= (1<<COM0A1) | (1<<COM0B1);
 		break;
 		case LT_ALL:
 			PORTC |= (1<<0) | (1<<1);
-			TCCR0A |= (1<<COM0A1);
+			TCCR0A |= (1<<COM0A1) | (1<<COM0B1);
 		break;
 		default:
 			//output to L1
@@ -104,7 +101,11 @@ void startPulseTimer() {
 	TCCR0B = TCCR0B_val;	//start the timer
 }
 
-void startNewPulseTrain() {
+void trigger() {
+	if (!cameraReady || !pulseTrainComplete) {
+		if (overtriggerCount < 0xFFFF) overtriggerCount++;
+		return;
+	}
 	pulseTrainComplete = 0;
 	pulseCount = 0;
 	startPulseTimer();
@@ -137,21 +138,16 @@ void restoreDefaults() {
 	acqSettings.pulsePeriod[0] = 1000;
 	acqSettings.pulsePeriod[1] = 0xFFFF;
 	acqSettings.triggerSource = NONE;
-	acqSettings.timedTriggerPeriod = 0xFFFF;
+	acqSettings.timedTriggerPeriod = MAX_TIMED_PERIOD;
 	acqSettings.hwTriggerPolarity = RISING;
 	precomputePulseTimerParameters();
 }
 
 uint8_t setTimedTriggerPeriod(uint16_t period) {
-	//timer period for 64 prescaler = 1 / 16MHz * 64 = 4us
+	//timer period for 8 prescaler = 1 / 16MHz * 8 = 0.5us
+	if (period < 4 || period > MAX_TIMED_PERIOD) return 0;
 	cli();
-	OCR1A = period / 4;
-	if(OCR1A < 1) {
-		OCR1A = 0xFFFF/4;
-		acqSettings.timedTriggerPeriod = 0xFFFF;
-		sei();
-		return 0;
-	}
+	OCR3A = period * 2 - 1;
 	acqSettings.timedTriggerPeriod = period;
 	sei();
 	return 1;
@@ -159,17 +155,24 @@ uint8_t setTimedTriggerPeriod(uint16_t period) {
 
 uint8_t changeTriggerSource(triggerSources source) {
 	cli();
+	TCCR3B &= ~(1<<CS31);	//disable timed trigger
+	TCCR0B = 0;	//stop pulse timer
+	pulseTrainComplete = 1;
+	TCCR0A &= ~((1<<COM0A1) | (1<<COM0B1));	//release pulse timer outputs
+	PORTD &= ~((1<<6) | (1<<5));	//OC0A, OC0B output zero
+	
 	uint8_t retVal = 1;
 	switch(source) {
+		case NONE:
+		break;
 		case FREE:
 			if(PIND & (1<<2)) {		//simulate rising edge if camera is already ready
-				cameraReady = 0;
-				checkCameraReadyStatus();
+				trigger();
 			}
 		break;
 		case TIMED:
-			TCNT1 = 0;	//reset timed trigger
-			TCCR1B |= (1<<CS10) | (1<<CS11);	//start timed trigger with 64 prescaler
+			TCNT3 = 0;	//reset timed trigger
+			TCCR3B |= 1<<CS31;	//start timed trigger with 8 prescaler
 		break;
 		case HW:
 			//TODO
@@ -177,16 +180,10 @@ uint8_t changeTriggerSource(triggerSources source) {
 		case ENCODER:
 			//TODO
 		break;
-		default:	//NONE or out of range
-			if(source >= NUM_OF_TRIGGER_SOURCES)	{	//not in the list - fail
-				source = NONE;
-				retVal = 0;
-			}
-			TCCR1B &= ~((1<<CS10) | (1<<CS11));	//disable timed trigger
-			TCCR0B = 0;	//stop pulse timer
-			pulseTrainComplete = 1;
-			TCCR0A = 0;	//release pulse timer outputs
-			PORTD &= ~((1<<6) | (1<<5));	//OC0A, OC0B output zero
+		default:	// out of range
+			source = NONE;
+			retVal = 0;
+		break;
 	}
 	acqSettings.triggerSource = source;
 	sei();
@@ -317,10 +314,10 @@ int main(void) {
 	TCCR0B = 0;							//stop the timer
 	TIMSK0 = (1<<OCIE0A);				//enable COMPA interrupt
 	
-	//timer 1 setup (timed trigger)
-	TCCR1B = (1<<WGM12);	//CTC mode
-	TIMSK1 = (1<<OCIE1A);	//enable COMPA interrupt
-	setTimedTriggerPeriod(acqSettings.timedTriggerPeriod);
+	//timer 3 setup (timed trigger)
+	TCCR3B = (1<<WGM32);	//CTC mode
+	TIMSK3 = (1<<OCIE3A);	//enable COMPA interrupt
+	//setTimedTriggerPeriod(acqSettings.timedTriggerPeriod);
 	
 	//line out 1 interrupt
 	EICRA = (1<<ISC00);		//INT0 on logical change
@@ -333,10 +330,19 @@ int main(void) {
 	usartInit();
 	sei();
 	
-	checkCameraReadyStatus();
+	setTimedTriggerPeriod(acqSettings.timedTriggerPeriod);
+	changeTriggerSource(acqSettings.triggerSource);
+	
+	//triggerNextExposure();
 	
     while(1) {
+		if(cameraReadyChanged && cameraReady){
+			if (cameraReady){
+				triggerNextExposure();
+			}
+			cameraReadyChanged = 0;
+		}
 		processUsart();
-		//checkCameraReadyStatus();	//DO NOT DO THIS, MARGINAL BEHAVIOUR
+		//triggerNextExposure();	//DO NOT DO THIS, MARGINAL BEHAVIOUR
     }
 }
