@@ -1,5 +1,4 @@
 #include "global.h"
-//#include <util/delay.h>
 #include <stdint.h>
 #include <avr/interrupt.h>
 #include "string.h"
@@ -7,28 +6,23 @@
 #include "settings.h"
 #include "EEPROM.h"
 
-#define TCCR0A_FAST_PWM ((1<<WGM01) | (1<<WGM00))
+#define TCCR1A_FAST_PWM (1<<WGM11)
+#define TCCR1B_FAST_PWM ((1<<WGM12) | (1<<WGM13))
 
 acquisitionSettings acqSettings;
 
-uint8_t precomputedOCR0A[MAX_PULSE_CONFIGS+1];
-uint8_t precomputedTCCR0B[MAX_PULSE_CONFIGS+1];
+uint16_t precomputedOCR1A[MAX_PULSE_CONFIGS+1];
+uint8_t precomputedTCCR1B[MAX_PULSE_CONFIGS+1];
 
 volatile uint8_t pulseTrainComplete = 1;
 volatile uint8_t pulseCount = 0;
 volatile uint16_t overtriggerCount = 0;
-//volatile uint8_t cameraReady = 0;
-//volatile uint8_t cameraReadyRequest = 0;
-//volatile uint8_t timedTriggerRequest = 0;
-//volatile uint8_t hwTriggerRequest = 0;
-//void checkCameraReady();
-//uint8_t setTriggerSource(triggerSources source);
 void startPulseTimer();
 uint8_t trigger();
 
 ISR(INT0_vect) {		// line out 1 rising/falling edge
 	if(PIND & (1<<2)) {	// rising edge - camera ready
-		TCCR0B = 0;				//stop the timer
+		TCCR1B = TCCR1B_FAST_PWM;		// stop the timer
 		if(!pulseTrainComplete) startPulseTimer();
 		else if(acqSettings.triggerSource == FREE) trigger();
 	}
@@ -53,53 +47,53 @@ void checkCameraReady(){
 void startPulseTimer() {
 	switch (acqSettings.pulseOutput[pulseCount]) {
 		case T:
-			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0A1);	// pulse output to camera
+			TCCR1A = TCCR1A_FAST_PWM | (1<<COM1A1);	// pulse output to camera
 		break;
 		case L1:
 			PORTC &= ~((1<<0) | (1<<1));	// clear light select (output routes to L1)
-			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0B1);	// pulse output to light
+			TCCR1A = TCCR1A_FAST_PWM | (1<<COM1B1);	// pulse output to light
 		break;
 		case L2:
 			PORTC &= ~(1<<1);
 			PORTC |= (1<<0);
-			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0B1);
+			TCCR1A = TCCR1A_FAST_PWM | (1<<COM1B1);
 		break;
 		case L3:
 			PORTC &= ~(1<<0);
 			PORTC |= (1<<1);
-			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0B1);
+			TCCR1A = TCCR1A_FAST_PWM | (1<<COM1B1);
 		break;
 		case L_ALL:
 			PORTC |= (1<<0) | (1<<1);
-			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0B1);
+			TCCR1A = TCCR1A_FAST_PWM | (1<<COM1B1);
 		break;
 		case L1T:
 			PORTC &= ~((1<<0) | (1<<1));
-			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0A1) | (1<<COM0B1);	// pulse output to camera and light
+			TCCR1A = TCCR1A_FAST_PWM | (1<<COM1A1) | (1<<COM1B1);	// pulse output to camera and light
 		break;
 		case L2T:
 			PORTC &= ~(1<<1);
 			PORTC |= (1<<0);
-			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0A1) | (1<<COM0B1);
+			TCCR1A = TCCR1A_FAST_PWM | (1<<COM1A1) | (1<<COM1B1);
 		break;
 		case L3T:
 			PORTC &= ~(1<<0);
 			PORTC |= (1<<1);
-			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0A1) | (1<<COM0B1);
+			TCCR1A = TCCR1A_FAST_PWM | (1<<COM1A1) | (1<<COM1B1);
 		break;
 		case LT_ALL:
 			PORTC |= (1<<0) | (1<<1);
-			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0A1) | (1<<COM0B1);
+			TCCR1A = TCCR1A_FAST_PWM | (1<<COM1A1) | (1<<COM1B1);
 		break;
 		default:
 		break;
 	}
 	
-	OCR0A = precomputedOCR0A[pulseCount];	// set the output compare register (period)
-	OCR0B = OCR0A;
-	TCNT0 = 0xFF;		// counter starts one pulse below BOT (next clock sets output to 1)
+	OCR1A = precomputedOCR1A[pulseCount];	// set the output compare register (period)
+	OCR1B = OCR1A;
+	TCNT1 = 0xFFFF;		// counter starts one pulse below BOT (next clock sets output to 1)
 	GTCCR |= (1<<TSM);	// sync mode improves timing stability
-	TCCR0B = precomputedTCCR0B[pulseCount];	// set the prescaler
+	TCCR1B = precomputedTCCR1B[pulseCount];	// set the prescaler
 	GTCCR &= ~(1<<TSM);	// exit sync mode, starts timer
 	
 	pulseCount++;
@@ -107,7 +101,7 @@ void startPulseTimer() {
 }
 
 uint8_t trigger() {
-	if (!pulseTrainComplete || TCCR0B != 0) {	// TCCR0B = 0 ensures timer is completely stopped
+	if (!pulseTrainComplete || TCCR1B != TCCR1B_FAST_PWM) {	// TCCR1B = TCCR1B_FAST_PWM ensures timer is completely stopped
 		if (overtriggerCount < 0xFFFF) overtriggerCount++;
 		return 0;
 	}
@@ -119,22 +113,9 @@ uint8_t trigger() {
 
 //CALL THIS WHEN CHANGING PULSE PERIODS
 void precomputePulseTimerParameters() {
-	uint16_t pulseTime;
 	for(uint8_t i = 0; i < MAX_PULSE_CONFIGS+1; i++) {
-		pulseTime = acqSettings.pulsePeriod[i];
-		if(pulseTime < 125) {								//pulseTime < 125
-			precomputedTCCR0B[i] = (1<<CS01);				//8 prescaler, 0.5us period
-			precomputedOCR0A[i] = pulseTime*2-1;
-		}else if(pulseTime < 1000) {						//125 < pulseTime < 1000
-			precomputedTCCR0B[i] = (1<<CS01) | (1<<CS00);	//64 prescaler, 4us period
-			precomputedOCR0A[i] = pulseTime/4-1;
-		}else if(pulseTime < 4000) {						//1000 < pulseTime < 4000
-			precomputedTCCR0B[i] = (1<<CS02);				//256 prescaler, 16us period
-			precomputedOCR0A[i] = pulseTime/16-1;
-		}else {												//4000 < pulseTime < 10000
-			precomputedTCCR0B[i] = (1<<CS02) | (1<<CS00);	//1024 prescaler, 64us period
-			precomputedOCR0A[i] = pulseTime/64-1;
-		}
+		precomputedTCCR1B[i] = TCCR1B_FAST_PWM | (1<<CS11);				//8 prescaler, 0.5us period
+		precomputedOCR1A[i] = acqSettings.pulsePeriod[i]*2-1;
 	}
 }
 
@@ -149,11 +130,11 @@ uint8_t setTimedTriggerPeriod(uint16_t period) {
 }
 
 uint8_t setTriggerSource(triggerSources source) {
-	TCCR3B &= ~(1<<CS31);	//disable timed trigger
-	TCCR0B = 0;	//stop pulse timer
-	TCCR0A &= ~((1<<COM0A1) | (1<<COM0B1));	//release pulse timer outputs
-	PORTD &= ~((1<<6) | (1<<5));	//OC0A, OC0B output zero
-	EIMSK &= ~(1<<INT1);		//disable INT1 (HW trigger)
+	TCCR3B &= ~(1<<CS31);	// disable timed trigger
+	TCCR1B = TCCR1B_FAST_PWM;	// stop pulse timer
+	TCCR1A &= ~((1<<COM1A1) | (1<<COM1B1));	// release pulse timer outputs
+	PORTD &= ~((1<<6) | (1<<5));	// OC0A, OC0B output zero
+	EIMSK &= ~(1<<INT1);		// disable INT1 (HW trigger)
 	pulseTrainComplete = 1;
 	
 	uint8_t retVal = 1;
@@ -350,7 +331,7 @@ void processUsart() {
 				usartAddToOutBuffer(",");
 				usartAddToOutBuffer(intToString(pulseCount));
 				usartAddToOutBuffer(",");
-				usartAddToOutBuffer(intToString(TCCR0B));
+				usartAddToOutBuffer(intToString(TCCR1B));
 			}
 			// for controller identification and communication test
 			else if(cmpString(USART0.inBuffer+1, "ID\0")) {
@@ -369,8 +350,10 @@ void processUsart() {
 
 int main(void) {
 	cli();
-	// timer 0 setup (pulse timer)
-	DDRD |= (1<<6) | (1<<5);			//OC0A, OC0B output
+	// timer 1 setup (pulse timer)
+	DDRB |= (1<<0);		// this is the ICP1 pin. Set it to output to prevent accidental ICR1 capture
+	DDRB |= (1<<1) | (1<<2);	// OC1A, OC1B output
+	ICR1 = 0xFFFF;	// set TOP to maximum
 	
 	// timer 3 setup (timed trigger)
 	TCCR3B = (1<<WGM32);	// CTC mode
