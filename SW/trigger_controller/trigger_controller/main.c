@@ -249,6 +249,7 @@ void processUsart() {
 						break;
 					}
 					if(!passFailExpRange(values[i])) {	// value out of range
+						acqSettings.pulsePeriod[i] = 1000;
 						usartAddToOutBuffer("FAIL");
 						break;
 					}
