@@ -47,6 +47,7 @@ uint16_t stringToInt(volatile const char *str) {
 	
 	uint16_t output = 0;
 	uint8_t len = stringLength(str);
+	if (len > MAX_INT_LENGTH) return 0xFFFF;
 	uint16_t factor = 1;
 	for(int16_t i = len-1; i >= 0; i--) {
 		output += (str[i]-'0') * factor;
