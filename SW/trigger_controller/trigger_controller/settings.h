@@ -25,7 +25,8 @@ typedef enum triggerSources {
 	NONE,
 	FREE,
 	TIMED,
-	HW,
+	HW_TTL,
+	HW_DIFFERENTIAL,
 	ENCODER,
 	NUM_OF_TRIGGER_SOURCES,		//LEAVE THIS AS LAST
 } triggerSources;
@@ -33,8 +34,6 @@ typedef enum triggerSources {
 typedef enum hwTriggerPolarities {
 	RISING,
 	FALLING,
-	HIGH,
-	LOW,
 	NUM_OF_TRIGGER_POLARITIES,	//LEAVE THIS AS LAST
 } hwTriggerPolarities;
 

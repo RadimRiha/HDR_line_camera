@@ -7,6 +7,8 @@
 #include "settings.h"
 #include "EEPROM.h"
 
+#define TCCR0A_FAST_PWM ((1<<WGM01) | (1<<WGM00))
+
 acquisitionSettings acqSettings;
 
 uint8_t precomputedOCR0A[MAX_PULSE_CONFIGS+1];
@@ -15,103 +17,127 @@ uint8_t precomputedTCCR0B[MAX_PULSE_CONFIGS+1];
 volatile uint8_t pulseTrainComplete = 1;
 volatile uint8_t pulseCount = 0;
 volatile uint8_t cameraReady = 0;
-volatile uint8_t cameraReadyChanged = 0;
-volatile uint8_t timedTrigger = 0;
+volatile uint8_t cameraReadyRequest = 0;
+volatile uint8_t timedTriggerRequest = 0;
+volatile uint8_t hwTriggerRequest = 0;
 void checkCameraReady();
-void startPulseTimer();
-void trigger();
-void triggerNextExposure();
 uint8_t changeTriggerSource(triggerSources source);
+void startPulseTimer();
+uint8_t trigger();
 
-uint32_t overtriggerCount = 0;
-
+uint16_t overtriggerCount = 0;
+/*
 ISR(TIMER0_COMPA_vect) {	//pulse timer overflow
-	TCCR0B = 0;				//stop the timer
+	//TCCR0B = 0;				//stop the timer
+	
+	pulseCount++;
 	if(acqSettings.pulseOutput[pulseCount] == 0xFF) pulseTrainComplete = 1;
+	
+}*/
+
+ISR(INT0_vect) {		// line out 1 rising/falling edge
+	
+	if(PIND & (1<<2)){	// rising edge - camera ready
+		TCCR0B = 0;				//stop the timer
+		if(!pulseTrainComplete) startPulseTimer();
+		else if(acqSettings.triggerSource == FREE) {
+			trigger();
+			//cameraReadyRequest = 0;	// FREE run mode triggering
+		}
+	}
+	
+	//checkCameraReady();
 }
 
-ISR(TIMER3_COMPA_vect) {					//timed trigger overflow
-	timedTrigger = 1;
+ISR(TIMER3_COMPA_vect) {	// timed trigger overflow
+	trigger();
 }
 
-ISR(INT0_vect) {			//line out 1 rising/falling edge
-	checkCameraReady();
+ISR(INT1_vect) {			//HW trigger rising/falling edge
+	hwTriggerRequest = 1;
 }
 
 void checkCameraReady(){
-	cameraReadyChanged = 1;
-	if(PIND & (1<<2)) cameraReady = 1;
+	if(PIND & (1<<2)){
+		cameraReadyRequest = 1;
+		cameraReady = 1;
+	}
 	else cameraReady = 0;
 }
 
-void triggerNextExposure() {
-	if(!pulseTrainComplete) startPulseTimer();	//another pulse
-	else if(acqSettings.triggerSource == FREE) trigger();	//FREE run mode triggering
-}
-
 void startPulseTimer() {
-	OCR0A = precomputedOCR0A[pulseCount];
-	uint8_t TCCR0B_val = precomputedTCCR0B[pulseCount];
-	
-	TCCR0A &= ~((1<<COM0A1) | (1<<COM0B1));	//release pulse timer outputs
-	PORTC &= ~((1<<0) | (1<<1));	//clear light select (output goes to L1)
+	//TCCR0A = 0;
+	//uint8_t TCCR0B_val = precomputedTCCR0B[pulseCount];
+	//TCCR0A = 0;
+	//TCCR0A &= ~((1<<COM0A1) | (1<<COM0B1));	//release pulse timer outputs
+	//PORTC &= ~((1<<0) | (1<<1));	//clear light select (output goes to L1)
 	
 	switch (acqSettings.pulseOutput[pulseCount]) {
 		case T:
 			//TCCR0A = (1<<COM0A1) | (1<<WGM01) | (1<<WGM00);	//pulse output to camera
-			TCCR0A |= (1<<COM0A1);	//pulse output to camera
+			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0A1);	//pulse output to camera
 		break;
 		case L1:
-			//keep light select cleared
-			TCCR0A |= (1<<COM0B1);	// pulse output to light
+			PORTC &= ~((1<<0) | (1<<1));	//clear light select (output goes to L1)
+			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0B1);	// pulse output to light
 		break;
 		case L2:
+			PORTC &= ~(1<<1);
 			PORTC |= (1<<0);
-			TCCR0A |= (1<<COM0B1);
+			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0B1);
 		break;
 		case L3:
+			PORTC &= ~(1<<0);
 			PORTC |= (1<<1);
-			TCCR0A |= (1<<COM0B1);
+			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0B1);
 		break;
 		case L_ALL:
 			PORTC |= (1<<0) | (1<<1);
-			TCCR0A |= (1<<COM0B1);
+			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0B1);
 		break;
 		case L1T:
 			//keep light select cleared
-			TCCR0A |= (1<<COM0A1) | (1<<COM0B1);	//pulse output to camera and light
+			PORTC &= ~((1<<0) | (1<<1));
+			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0A1) | (1<<COM0B1);	//pulse output to camera and light
 		break;
 		case L2T:
+			PORTC &= ~(1<<1);
 			PORTC |= (1<<0);
-			TCCR0A |= (1<<COM0A1) | (1<<COM0B1);
+			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0A1) | (1<<COM0B1);
 		break;
 		case L3T:
+			PORTC &= ~(1<<0);
 			PORTC |= (1<<1);
-			TCCR0A |= (1<<COM0A1) | (1<<COM0B1);
+			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0A1) | (1<<COM0B1);
 		break;
 		case LT_ALL:
 			PORTC |= (1<<0) | (1<<1);
-			TCCR0A |= (1<<COM0A1) | (1<<COM0B1);
+			TCCR0A = TCCR0A_FAST_PWM | (1<<COM0A1) | (1<<COM0B1);
 		break;
 		default:
-			//output to L1
 		break;
 	}
 	
-	pulseCount++;
+	OCR0A = precomputedOCR0A[pulseCount];
 	OCR0B = OCR0A;
 	TCNT0 = 0xFF;
-	TCCR0B = TCCR0B_val;	//start the timer
+	GTCCR |= (1<<TSM);
+	TCCR0B = precomputedTCCR0B[pulseCount];	//start the timer
+	GTCCR &= ~(1<<TSM);
+	
+	pulseCount++;
+	if(acqSettings.pulseOutput[pulseCount] == 0xFF) pulseTrainComplete = 1;
 }
 
-void trigger() {
-	if (!cameraReady || !pulseTrainComplete) {
+uint8_t trigger() {
+	if (!cameraReady || !pulseTrainComplete || TCCR0B != 0) {
 		if (overtriggerCount < 0xFFFF) overtriggerCount++;
-		return;
+		return 0;
 	}
 	pulseTrainComplete = 0;
 	pulseCount = 0;
 	startPulseTimer();
+	return 1;
 }
 
 //CALL THIS WHEN CHANGING PULSE PERIODS
@@ -159,9 +185,9 @@ uint8_t setTimedTriggerPeriod(uint16_t period) {
 uint8_t changeTriggerSource(triggerSources source) {
 	TCCR3B &= ~(1<<CS31);	//disable timed trigger
 	TCCR0B = 0;	//stop pulse timer
-	pulseTrainComplete = 1;
 	TCCR0A &= ~((1<<COM0A1) | (1<<COM0B1));	//release pulse timer outputs
 	PORTD &= ~((1<<6) | (1<<5));	//OC0A, OC0B output zero
+	EIMSK &= ~(1<<INT1);		//disable INT1 (HW trigger)
 	
 	uint8_t retVal = 1;
 	switch(source) {
@@ -176,8 +202,19 @@ uint8_t changeTriggerSource(triggerSources source) {
 			TCNT3 = 0;	//reset timed trigger
 			TCCR3B |= 1<<CS31;	//start timed trigger with 8 prescaler
 		break;
-		case HW:
-			//TODO
+		case HW_TTL:
+			PORTC &= ~(1<<2);		// select TTL input
+			EIMSK |= (1<<INT1);		//enable INT1
+			
+			
+			EICRA |= (1<<ISC10) | (1<<ISC11);		//INT1 on rising edge
+		break;
+		case HW_DIFFERENTIAL:
+			PORTC |= (1<<2);		// select differential input
+			EIMSK |= (1<<INT1);		//enable INT1
+			
+			
+			EICRA |= (1<<ISC10) | (1<<ISC11);		//INT1 on rising edge
 		break;
 		case ENCODER:
 			//TODO
@@ -187,6 +224,7 @@ uint8_t changeTriggerSource(triggerSources source) {
 			retVal = 0;
 		break;
 	}
+	pulseTrainComplete = 1;
 	acqSettings.triggerSource = source;
 	return retVal;
 }
@@ -212,7 +250,7 @@ void processUsart() {
 		case 'S':
 			//message[1-3] = XYZ - acronym for setting parameter
 			if(cmpString(USART0.inBuffer+1, "PUO\0")) {	//pulse output
-				triggerSources triggerMem = acqSettings.triggerSource;
+				//triggerSources triggerMem = acqSettings.triggerSource;
 				uint16_t *values = stringToInts(USART0.inBuffer+4, ',');
 				for(uint8_t i = 0; i < 0xFF; i++) {
 					acqSettings.pulseOutput[i] = values[i];
@@ -227,9 +265,9 @@ void processUsart() {
 						break;
 					}
 				}
-				acqSettings.triggerSource = triggerMem;	//restart previous trigger
+				//acqSettings.triggerSource = triggerMem;	//restart previous trigger
 			}else if(cmpString(USART0.inBuffer+1, "PUP\0")) {	//pulse period
-				triggerSources triggerMem = acqSettings.triggerSource;
+				//triggerSources triggerMem = acqSettings.triggerSource;
 				uint16_t *values = stringToInts(USART0.inBuffer+4, ',');
 				for(uint8_t i = 0; i < 0xFF; i++) {
 					acqSettings.pulsePeriod[i] = values[i];
@@ -244,7 +282,7 @@ void processUsart() {
 					}
 				}
 				precomputePulseTimerParameters();
-				acqSettings.triggerSource = triggerMem;	//restart previous trigger
+				//acqSettings.triggerSource = triggerMem;	//restart previous trigger
 			}else if(cmpString(USART0.inBuffer+1, "TRS\0")) {	//trigger source
 				if(changeTriggerSource(USART0.inBuffer[4] - '0')) usartAddToOutBuffer("OK");
 				else usartAddToOutBuffer("FAIL");
@@ -258,8 +296,10 @@ void processUsart() {
 					usartAddToOutBuffer("FAIL");
 					acqSettings.hwTriggerPolarity = RISING;
 				}
-			}
-			else if(cmpString(USART0.inBuffer+1, "RST\0")) {	//restore defaults
+			}else if(cmpString(USART0.inBuffer+1, "OTR\0")) {	//set overtrigger counter to 0
+				overtriggerCount = 0;
+				usartAddToOutBuffer("OK");
+			}else if(cmpString(USART0.inBuffer+1, "RST\0")) {	//restore defaults
 				restoreDefaults();
 				usartAddToOutBuffer("OK");
 			}else usartAddToOutBuffer("UNRECOGNIZED");
@@ -287,10 +327,13 @@ void processUsart() {
 				usartAddToOutBuffer(intToString(acqSettings.timedTriggerPeriod));
 			}else if(cmpString(USART0.inBuffer+1, "HTP\0")) {	//HW trigger polarity
 				usartAddToOutBuffer(intToString(acqSettings.hwTriggerPolarity));
+			}else if(cmpString(USART0.inBuffer+1, "OTR\0")) {	//overtrigger counter
+				usartAddToOutBuffer(intToString(overtriggerCount));
 			}else if(cmpString(USART0.inBuffer+1, "DBG\0")) {	//DEBUG
 				usartAddToOutBuffer(intToString(pulseTrainComplete));
 				usartAddToOutBuffer(intToString(pulseCount));
 				usartAddToOutBuffer(intToString(cameraReady));
+				usartAddToOutBuffer(intToString(cameraReadyRequest));
 			}else if(cmpString(USART0.inBuffer+1, "ID\0")) {	//for controller identification and communication test
 				usartAddToOutBuffer("CONTROLLER");
 			}else usartAddToOutBuffer("UNRECOGNIZED");
@@ -309,20 +352,21 @@ int main(void) {
 	cli();
 	//timer 0 setup (pulse timer)
 	DDRD |= (1<<6) | (1<<5);			//OC0A, OC0B output
-	TCCR0A = (1<<WGM01) | (1<<WGM00);	//Fast PWM
+	TCCR0A = TCCR0A_FAST_PWM;			//Fast PWM
 	TCCR0B = 0;							//stop the timer
-	TIMSK0 = (1<<OCIE0A);				//enable COMPA interrupt
+	//TIMSK0 = (1<<OCIE0A);				//enable COMPA interrupt
 	
 	//timer 3 setup (timed trigger)
 	TCCR3B = (1<<WGM32);	//CTC mode
 	TIMSK3 = (1<<OCIE3A);	//enable COMPA interrupt
 	
 	//line out 1 interrupt
-	EICRA = (1<<ISC00);		//INT0 on logical change
-	EIMSK = (1<<INT0);		//enable INT0
+	EICRA |= (1<<ISC00);	//INT0 on logical change
+	EIMSK |= (1<<INT0);		//enable INT0
 	
 	//GPIO setup
 	DDRC |= (1<<0) | (1<<1);//light select output
+	DDRC |= (1<<2);			//HW trigger select output
 	
 	if(!loadSettings()) restoreDefaults();
 	usartInit();
@@ -335,17 +379,62 @@ int main(void) {
 	//triggerNextExposure();
 	
     while(1) {
-		if(cameraReadyChanged){
-			if (cameraReady){
-				triggerNextExposure();
+		/*
+		if(TCCR0B == 0){	// pulse timer COMPA interrupt executed
+			if(cameraReadyRequest){
+				if (!pulseTrainComplete){
+					//startPulseTimer();
+					cameraReadyRequest = 0;
+				}
+				else if (acqSettings.triggerSource == FREE){
+					trigger();
+					cameraReadyRequest = 0;	// FREE run mode triggering
+				}
 			}
-			cameraReadyChanged = 0;
-		}
-		if (timedTrigger){
-			timedTrigger = 0;
-			trigger();
-		}
+			switch(acqSettings.triggerSource) {
+				case TIMED:
+					if (timedTriggerRequest){
+						trigger();
+						timedTriggerRequest = 0;
+					}
+				break;
+				case HW_TTL:
+				case HW_DIFFERENTIAL:
+					if (hwTriggerRequest){
+						trigger();
+						hwTriggerRequest = 0;
+					}
+				case ENCODER:
+				//TODO
+				break;
+				default:
+				break;
+			}
+		}*/
 		processUsart();
+		
+			/*
+			if(cameraReadyRequest){
+				if (!pulseTrainComplete) {
+					startPulseTimer();
+					cameraReadyRequest = 0;
+				}
+				else if(acqSettings.triggerSource == FREE) {
+					trigger();
+					cameraReadyRequest = 0;	// FREE run mode triggering
+				}
+			}*/
+			/*
+			if (timedTriggerRequest){
+				trigger();
+				timedTriggerRequest = 0;
+			}*/
+			/*
+			if (hwTriggerRequest){
+				trigger();
+				hwTriggerRequest = 0;
+			}*/
+		
 		//triggerNextExposure();	//DO NOT DO THIS, MARGINAL BEHAVIOUR
     }
 }
