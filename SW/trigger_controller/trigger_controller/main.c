@@ -12,7 +12,6 @@
 acquisitionSettings acqSettings;
 
 uint16_t precomputedOCR1A[MAX_PULSE_CONFIGS+1];
-uint8_t precomputedTCCR1B[MAX_PULSE_CONFIGS+1];
 
 volatile uint8_t pulseTrainComplete = 1;
 volatile uint8_t pulseCount = 0;
@@ -35,14 +34,6 @@ ISR(TIMER3_COMPA_vect) {	// timed trigger overflow
 ISR(INT1_vect) {			// HW trigger rising/falling edge
 	trigger();
 }
-/*
-void checkCameraReady(){
-	if(PIND & (1<<2)){
-		cameraReadyRequest = 1;
-		cameraReady = 1;
-	}
-	else cameraReady = 0;
-}*/
 
 void startPulseTimer() {
 	switch (acqSettings.pulseOutput[pulseCount]) {
@@ -92,9 +83,7 @@ void startPulseTimer() {
 	OCR1A = precomputedOCR1A[pulseCount];	// set the output compare register (period)
 	OCR1B = OCR1A;
 	TCNT1 = 0xFFFF;		// counter starts one pulse below BOT (next clock sets output to 1)
-	GTCCR |= (1<<TSM);	// sync mode improves timing stability
-	TCCR1B = precomputedTCCR1B[pulseCount];	// set the prescaler
-	GTCCR &= ~(1<<TSM);	// exit sync mode, starts timer
+	TCCR1B = TCCR1B_FAST_PWM | (1<<CS11);	// set the prescaler to 8 - start the timer
 	
 	pulseCount++;
 	if(acqSettings.pulseOutput[pulseCount] == 0xFF) pulseTrainComplete = 1;
@@ -114,13 +103,12 @@ uint8_t trigger() {
 //CALL THIS WHEN CHANGING PULSE PERIODS
 void precomputePulseTimerParameters() {
 	for(uint8_t i = 0; i < MAX_PULSE_CONFIGS+1; i++) {
-		precomputedTCCR1B[i] = TCCR1B_FAST_PWM | (1<<CS11);				//8 prescaler, 0.5us period
 		precomputedOCR1A[i] = acqSettings.pulsePeriod[i]*2-1;
 	}
 }
 
 uint8_t setTimedTriggerPeriod(uint16_t period) {
-	//timer period for 8 prescaler = 1 / 16MHz * 8 = 0.5us
+	// timer period for 8 prescaler = 1 / 16MHz * 8 = 0.5us
 	if (period < 4 || period > MAX_TIMED_PERIOD) return 0;
 	cli();
 	OCR3A = period * 2 - 1;
@@ -142,21 +130,21 @@ uint8_t setTriggerSource(triggerSources source) {
 		case NONE:
 		break;
 		case FREE:
-			if(PIND & (1<<2)) {		//simulate rising edge if camera is already ready
+			if(PIND & (1<<2)) {		// trigger if camera is already ready
 				trigger();
 			}
 		break;
 		case TIMED:
-			TCNT3 = 0;	//reset timed trigger
-			TCCR3B |= 1<<CS31;	//start timed trigger with 8 prescaler
+			TCNT3 = 0;	// reset timed trigger timer
+			TCCR3B |= (1<<CS31);	// start timed trigger timer with 8 prescaler
 		break;
 		case HW_TTL:
 			PORTC &= ~(1<<2);		// select TTL input
-			EIMSK |= (1<<INT1);		//enable INT1
+			EIMSK |= (1<<INT1);		// enable INT1
 		break;
 		case HW_DIFFERENTIAL:
 			PORTC |= (1<<2);		// select differential input
-			EIMSK |= (1<<INT1);		//enable INT1
+			EIMSK |= (1<<INT1);		// enable INT1
 		break;
 		case ENCODER:
 			//TODO
