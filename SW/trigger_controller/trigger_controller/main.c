@@ -1,10 +1,11 @@
+#include "main.h"
 #include "global.h"
-#include <stdint.h>
 #include <avr/interrupt.h>
 #include "string.h"
 #include "USART.h"
 #include "settings.h"
 #include "EEPROM.h"
+#include "Encoder.h"
 
 #define TCCR1A_FAST_PWM (1<<WGM11)
 #define TCCR1B_FAST_PWM ((1<<WGM12) | (1<<WGM13))
@@ -16,8 +17,8 @@ uint16_t precomputedOCR1A[MAX_PULSE_CONFIGS+1];
 volatile uint8_t pulseTrainComplete = 1;
 volatile uint8_t pulseCount = 0;
 volatile uint16_t overtriggerCount = 0;
+
 void startPulseTimer();
-uint8_t trigger();
 
 ISR(INT0_vect) {		// line out 1 rising/falling edge
 	if(PIND & (1<<2)) {	// rising edge - camera ready
@@ -33,6 +34,24 @@ ISR(TIMER3_COMPA_vect) {	// timed trigger overflow
 
 ISR(INT1_vect) {			// HW trigger rising/falling edge
 	trigger();
+}
+
+ISR(PCINT1_vect) {	// Encoder A rising/falling edge
+	if(PINC & (1<<3)) {	// rising edge
+		encoderStateMachine(A_RISING);
+	}
+	else {
+		encoderStateMachine(A_FALLING);
+	}
+}
+
+ISR(PCINT2_vect) {	// Encoder B rising/falling edge
+	if(PIND & (1<<4)) {	// rising edge
+		encoderStateMachine(B_RISING);
+	}
+	else {
+		encoderStateMachine(B_FALLING);
+	}
 }
 
 void startPulseTimer() {
@@ -123,6 +142,7 @@ uint8_t setTriggerSource(triggerSources source) {
 	TCCR1A &= ~((1<<COM1A1) | (1<<COM1B1));	// release pulse timer outputs
 	PORTD &= ~((1<<6) | (1<<5));	// OC0A, OC0B output zero
 	EIMSK &= ~(1<<INT1);		// disable INT1 (HW trigger)
+	PCICR &= ~((1<<PCIE1) | (1<<PCIE2));	// disable pin change interrupts for ports C and D
 	pulseTrainComplete = 1;
 	
 	uint8_t retVal = 1;
@@ -147,7 +167,7 @@ uint8_t setTriggerSource(triggerSources source) {
 			EIMSK |= (1<<INT1);		// enable INT1
 		break;
 		case ENCODER:
-			//TODO
+			PCICR |= (1<<PCIE1) | (1<<PCIE2);	// enable pin change interrupts for ports C and D
 		break;
 		default:	// out of range
 			source = NONE;
@@ -270,6 +290,12 @@ void processUsart() {
 				overtriggerCount = 0;
 				usartAddToOutBuffer("OK");
 			}
+			// set encoder error and back counter to 0
+			else if(cmpString(USART0.inBuffer+1, "ENC\0")) {
+				encoderErrorcount = 0;
+				encoderErrorcount = 0;
+				usartAddToOutBuffer("OK");
+			}
 			// restore defaults
 			else if(cmpString(USART0.inBuffer+1, "RST\0")) {	
 				restoreDefaults();
@@ -314,6 +340,12 @@ void processUsart() {
 			else if(cmpString(USART0.inBuffer+1, "OTR\0")) {
 				usartAddToOutBuffer(intToString(overtriggerCount));
 			}
+			// Encoder info
+			else if(cmpString(USART0.inBuffer+1, "ENC\0")) {
+				usartAddToOutBuffer(intToString(encoderErrorcount));
+				usartAddToOutBuffer(",");
+				usartAddToOutBuffer(intToString(encoderBackcount));
+			}
 			// DEBUG
 			else if(cmpString(USART0.inBuffer+1, "DBG\0")) {	
 				usartAddToOutBuffer(intToString(pulseTrainComplete));
@@ -355,6 +387,10 @@ int main(void) {
 	// GPIO setup
 	DDRC |= (1<<0) | (1<<1);	// light select output
 	DDRC |= (1<<2);				// HW trigger select output
+	
+	// Encoder setup
+	PCMSK1 |= (1<<PCINT11);	// enable PCINT11 - Encoder A signal
+	PCMSK2 |= (1<<PCINT20);	// enable PCINT20 - Encoder B signal
 	
 	loadSettings();
 	usartInit();

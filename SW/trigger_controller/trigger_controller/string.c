@@ -1,5 +1,6 @@
 #include "string.h"
 #include "settings.h"
+#include <math.h>
 
 uint8_t stringLength(volatile const char *str) {
 	for(uint8_t i = 0; i < 0xFF; i++) {
@@ -21,9 +22,15 @@ uint8_t cmpString(volatile const char *str1, const char *str2) {
 	return 1;	//match
 }
 
-char *intToString(uint16_t integer) {
-	#define MAX_INT_LENGTH 5				//max uint16_t length is 5 digits
-	static char output[MAX_INT_LENGTH+1];	//ATTENTION, function call overwrites last return value!
+char *intToString(int32_t integer) {
+	#define MAX_INT_LENGTH 5				// max uint16_t length is 5 digits
+	static char output[MAX_INT_LENGTH+2];	// function call overwrites last return value!
+	uint8_t sign = 0;	// 0-positive, 1-negative
+	if(integer < 0){
+		sign = 1;
+		output[0] = '-';
+		integer = -integer;
+	}
 	
 	uint8_t intLength = 1;
 	uint16_t intScale = integer;
@@ -34,10 +41,10 @@ char *intToString(uint16_t integer) {
 	}
 	
 	for(int8_t i = intLength-1; i >= 0; i--) {
-		output[i] = (integer % 10) + '0';
+		output[i+sign] = (integer % 10) + '0';
 		integer = integer / 10;
 	}
-	output[intLength] = '\0';
+	output[intLength+sign] = '\0';
 	
 	return output;
 }
