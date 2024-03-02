@@ -22423,20 +22423,6 @@ DIN A4, landscape with location and doc. field</description>
 <label x="175.26" y="66.04" size="1.778" layer="95" xref="yes"/>
 </segment>
 </net>
-<net name="ENC_B" class="0">
-<segment>
-<pinref part="IC4" gate="G$1" pin="DI"/>
-<wire x1="78.74" y1="68.58" x2="73.66" y2="68.58" width="0.1524" layer="91"/>
-<label x="73.66" y="68.58" size="1.778" layer="95" rot="R180" xref="yes"/>
-</segment>
-</net>
-<net name="ENC_A" class="0">
-<segment>
-<pinref part="IC3" gate="G$1" pin="DI"/>
-<wire x1="78.74" y1="104.14" x2="73.66" y2="104.14" width="0.1524" layer="91"/>
-<label x="73.66" y="104.14" size="1.778" layer="95" rot="R180" xref="yes"/>
-</segment>
-</net>
 <net name="HW_TRIG_RS" class="0">
 <segment>
 <pinref part="IC11" gate="G$1" pin="RO"/>
@@ -22468,6 +22454,20 @@ DIN A4, landscape with location and doc. field</description>
 <label x="185.42" y="45.72" size="1.778" layer="95" xref="yes"/>
 <pinref part="IC11" gate="G$1" pin="R-"/>
 <wire x1="172.72" y1="50.8" x2="175.26" y2="50.8" width="0.1524" layer="91"/>
+</segment>
+</net>
+<net name="LINE_IN_2" class="0">
+<segment>
+<pinref part="IC3" gate="G$1" pin="DI"/>
+<wire x1="78.74" y1="104.14" x2="73.66" y2="104.14" width="0.1524" layer="91"/>
+<label x="73.66" y="104.14" size="1.778" layer="95" rot="R180" xref="yes"/>
+</segment>
+</net>
+<net name="LINE_IN_3" class="0">
+<segment>
+<pinref part="IC4" gate="G$1" pin="DI"/>
+<wire x1="78.74" y1="68.58" x2="73.66" y2="68.58" width="0.1524" layer="91"/>
+<label x="73.66" y="68.58" size="1.778" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
 </nets>
@@ -23303,6 +23303,13 @@ DIN A4, landscape with location and doc. field</description>
 <pinref part="IC7" gate="C" pin="O"/>
 <wire x1="241.3" y1="40.64" x2="243.84" y2="40.64" width="0.1524" layer="91"/>
 <label x="243.84" y="40.64" size="1.778" layer="95" xref="yes"/>
+</segment>
+</net>
+<net name="LINE_IN_2" class="0">
+<segment>
+<pinref part="IC13" gate="IC" pin="PC5(ADC5/SCL/PCINT13)"/>
+<wire x1="99.06" y1="99.06" x2="73.66" y2="99.06" width="0.1524" layer="91"/>
+<label x="73.66" y="99.06" size="1.778" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
 </nets>

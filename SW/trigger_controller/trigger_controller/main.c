@@ -55,6 +55,9 @@ ISR(PCINT2_vect) {	// Encoder B rising/falling edge
 }
 
 void startPulseTimer() {
+	if (pulseCount == 0) PORTC |= (1<<5);	// first exposure indicator
+	else PORTC &= ~(1<<5);
+	
 	switch (acqSettings.pulseOutput[pulseCount]) {
 		case T:
 			TCCR1A = TCCR1A_FAST_PWM | (1<<COM1A1);	// pulse output to camera
@@ -391,6 +394,9 @@ int main(void) {
 	// Encoder setup
 	PCMSK1 |= (1<<PCINT11);	// enable PCINT11 - Encoder A signal
 	PCMSK2 |= (1<<PCINT20);	// enable PCINT20 - Encoder B signal
+	
+	// line in 2 (first exposure indicator)
+	DDRC |= (1<<5);
 	
 	loadSettings();
 	usartInit();
