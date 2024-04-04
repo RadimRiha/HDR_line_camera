@@ -12,15 +12,20 @@
 
 acquisitionSettings acqSettings;
 
+// precomputed OCR1A values for shorter trigger latency
 uint16_t precomputedOCR1A[MAX_PULSE_CONFIGS+1];
 
+// true if all the pulses have been executed
 volatile uint8_t pulseTrainComplete = 1;
+// counter for the current output pulse
 volatile uint8_t pulseCount = 0;
+// over trigger counter (trigger while camera not ready)
 volatile uint16_t overtriggerCount = 0;
 
 void startPulseTimer();
 
-ISR(INT0_vect) {		// line out 1 rising/falling edge
+// line out 1 (line trigger wait) rising/falling edge
+ISR(INT0_vect) {
 	if(PIND & (1<<2)) {	// rising edge - camera ready
 		TCCR1B = TCCR1B_FAST_PWM;		// stop the timer
 		if(!pulseTrainComplete) startPulseTimer();
@@ -28,15 +33,18 @@ ISR(INT0_vect) {		// line out 1 rising/falling edge
 	}
 }
 
-ISR(TIMER3_COMPA_vect) {	// timed trigger overflow
+// timed trigger overflow
+ISR(TIMER3_COMPA_vect) {
 	trigger();
 }
 
-ISR(INT1_vect) {			// HW trigger rising/falling edge
+// HW trigger rising/falling edge
+ISR(INT1_vect) {
 	trigger();
 }
 
-ISR(PCINT1_vect) {	// Encoder A rising/falling edge
+// Encoder A rising/falling edge
+ISR(PCINT1_vect) {
 	if(PINC & (1<<3)) {	// rising edge
 		encoderStateMachine(A_RISING);
 	}
@@ -45,7 +53,8 @@ ISR(PCINT1_vect) {	// Encoder A rising/falling edge
 	}
 }
 
-ISR(PCINT2_vect) {	// Encoder B rising/falling edge
+// Encoder B rising/falling edge
+ISR(PCINT2_vect) {	
 	if(PIND & (1<<4)) {	// rising edge
 		encoderStateMachine(B_RISING);
 	}
@@ -54,17 +63,19 @@ ISR(PCINT2_vect) {	// Encoder B rising/falling edge
 	}
 }
 
+// setup the pulse timer for the next pulse and start it
 void startPulseTimer() {
 	if (pulseCount == 0) PORTC |= (1<<5);	// first exposure indicator
 	else PORTC &= ~(1<<5);
 	
+	// setup pulse output routing
 	switch (acqSettings.pulseOutput[pulseCount]) {
 		case T:
-			TCCR1A = TCCR1A_FAST_PWM | (1<<COM1A1);	// pulse output to camera
+			TCCR1A = TCCR1A_FAST_PWM | (1<<COM1A1);	// pulse output to camera (OC1A)
 		break;
 		case L1:
-			PORTC &= ~((1<<0) | (1<<1));	// clear light select (output routes to L1)
-			TCCR1A = TCCR1A_FAST_PWM | (1<<COM1B1);	// pulse output to light
+			PORTC &= ~((1<<0) | (1<<1));	// clear light select (output routes to L1 through DEMUX)
+			TCCR1A = TCCR1A_FAST_PWM | (1<<COM1B1);	// pulse output to light (OC1B)
 		break;
 		case L2:
 			PORTC &= ~(1<<1);
@@ -82,7 +93,7 @@ void startPulseTimer() {
 		break;
 		case L1T:
 			PORTC &= ~((1<<0) | (1<<1));
-			TCCR1A = TCCR1A_FAST_PWM | (1<<COM1A1) | (1<<COM1B1);	// pulse output to camera and light
+			TCCR1A = TCCR1A_FAST_PWM | (1<<COM1A1) | (1<<COM1B1);
 		break;
 		case L2T:
 			PORTC &= ~(1<<1);
@@ -108,21 +119,23 @@ void startPulseTimer() {
 	TCCR1B = TCCR1B_FAST_PWM | (1<<CS11);	// set the prescaler to 8 - start the timer
 	
 	pulseCount++;
-	if(acqSettings.pulseOutput[pulseCount] == 0xFF) pulseTrainComplete = 1;
+	if(acqSettings.pulseOutput[pulseCount] == 0xFF) pulseTrainComplete = 1;	// if this was the last pulse
 }
 
 uint8_t trigger() {
 	if (!pulseTrainComplete || TCCR1B != TCCR1B_FAST_PWM) {	// TCCR1B = TCCR1B_FAST_PWM ensures timer is completely stopped
+		// camera was not ready
 		if (overtriggerCount < 0xFFFF) overtriggerCount++;
 		return 0;
 	}
+	// camera was ready, start new pulse train
 	pulseTrainComplete = 0;
 	pulseCount = 0;
 	startPulseTimer();
 	return 1;
 }
 
-//CALL THIS WHEN CHANGING PULSE PERIODS
+// CALL THIS WHEN CHANGING PULSE PERIODS
 void precomputePulseTimerParameters() {
 	for(uint8_t i = 0; i < MAX_PULSE_CONFIGS+1; i++) {
 		precomputedOCR1A[i] = acqSettings.pulsePeriod[i]*2-1;
@@ -131,7 +144,7 @@ void precomputePulseTimerParameters() {
 
 uint8_t setTimedTriggerPeriod(uint16_t period) {
 	// timer period for 8 prescaler = 1 / 16MHz * 8 = 0.5us
-	if (period < 4 || period > MAX_TIMED_PERIOD) return 0;
+	if (period < MIN_TIMED_PERIOD || period > MAX_TIMED_PERIOD) return 0;
 	cli();
 	OCR3A = period * 2 - 1;
 	acqSettings.timedTriggerPeriod = period;
@@ -140,6 +153,7 @@ uint8_t setTimedTriggerPeriod(uint16_t period) {
 }
 
 uint8_t setTriggerSource(triggerSources source) {
+	// disable all trigger sources
 	TCCR3B &= ~(1<<CS31);	// disable timed trigger
 	TCCR1B = TCCR1B_FAST_PWM;	// stop pulse timer
 	TCCR1A &= ~((1<<COM1A1) | (1<<COM1B1));	// release pulse timer outputs
@@ -149,11 +163,12 @@ uint8_t setTriggerSource(triggerSources source) {
 	pulseTrainComplete = 1;
 	
 	uint8_t retVal = 1;
+	// enable the desired trigger source
 	switch(source) {
 		case NONE:
 		break;
 		case FREE:
-			if(PIND & (1<<2)) {		// trigger if camera is already ready
+			if(PIND & (1<<2)) {		// trigger if camera is already ready when changing source
 				trigger();
 			}
 		break;
@@ -170,7 +185,7 @@ uint8_t setTriggerSource(triggerSources source) {
 			EIMSK |= (1<<INT1);		// enable INT1
 		break;
 		case ENCODER:
-			PCICR |= (1<<PCIE1) | (1<<PCIE2);	// enable pin change interrupts for ports C and D
+			PCICR |= (1<<PCIE1) | (1<<PCIE2);	// enable pin change interrupts for ports C and D (encoder A and b signals)
 		break;
 		default:	// out of range
 			source = NONE;
@@ -198,6 +213,7 @@ uint8_t setHwTriggerPolarity(hwTriggerPolarities polarity) {
 	return retVal;
 }
 
+// helper function to check if the received value is in the bool range (0 or 1)
 uint8_t passFailBool(uint8_t val) {
 	if(val == 0 || val == 1) {
 		usartAddToOutBuffer("OK");
@@ -207,6 +223,7 @@ uint8_t passFailBool(uint8_t val) {
 	return 0;
 }
 
+// helper function to check if the received value is in the exposure time range
 uint8_t passFailExpRange(uint16_t val) {
 	if(val >= MIN_EXP_TIME && val <= MAX_EXP_TIME) return 1;
 	return 0;
@@ -225,7 +242,10 @@ void processUsart() {
 				triggerSources tmpSource = acqSettings.triggerSource;
 				setTriggerSource(NONE);
 				
+				// pulse output config string is in format "OUT0,OUT1,OUT2..."
 				uint16_t *values = stringToInts(USART0.inBuffer+4, ',');
+				
+				// inspect all received values
 				for(uint8_t i = 0; i < MAX_PULSE_CONFIGS; i++) {
 					acqSettings.pulseOutput[i] = values[i];
 					if(values[i] == 0xFFFF) {	// reached end of array successfully
@@ -252,7 +272,10 @@ void processUsart() {
 				triggerSources tmpSource = acqSettings.triggerSource;
 				setTriggerSource(NONE);
 				
+				// pulse period config string is in format "PERIOD0,PERIOD1,PERIOD2..."
 				uint16_t *values = stringToInts(USART0.inBuffer+4, ',');
+				
+				// inspect all received values
 				for(uint8_t i = 0; i < MAX_PULSE_CONFIGS; i++) {
 					acqSettings.pulsePeriod[i] = values[i];
 					if(values[i] == 0xFFFF) {	// reached end of array successfully
@@ -264,8 +287,8 @@ void processUsart() {
 						usartAddToOutBuffer("FAIL");
 						break;
 					}
-					if(acqSettings.pulseOutput[i] >= NUM_OF_PULSE_OUTPUTS) {	// pulse output for this value missing
-						acqSettings.pulseOutput[i] = T;			// default value - output to camera trigger
+					if(acqSettings.pulseOutput[i] >= NUM_OF_PULSE_OUTPUTS) {	// pulse output for this index is missing
+						acqSettings.pulseOutput[i] = T;			// config corresponding pulse output to default value - camera trigger
 						acqSettings.pulseOutput[i+1] = 0xFF;	// terminate
 					}
 				}
@@ -296,14 +319,16 @@ void processUsart() {
 			// set encoder error and back counter to 0
 			else if(cmpString(USART0.inBuffer+1, "ENC\0")) {
 				encoderErrorcount = 0;
-				encoderErrorcount = 0;
+				encoderBackcount = 0;
 				usartAddToOutBuffer("OK");
 			}
-			// restore defaults
+			// restore default settings
 			else if(cmpString(USART0.inBuffer+1, "RST\0")) {	
 				restoreDefaults();
 				usartAddToOutBuffer("OK");
-			}else usartAddToOutBuffer("UNRECOGNIZED");
+			}
+			// parameter not recognized
+			else usartAddToOutBuffer("UNRECOGNIZED");
 			usartAddToOutBuffer("\n\0");
 			usartSend();
 			saveSettings();
@@ -313,6 +338,7 @@ void processUsart() {
 			// message[1-3] = XYZ - acronym for getting parameter
 			// pulse output
 			if(cmpString(USART0.inBuffer+1, "PUO\0")) {
+				// add all pulse outputs to outBuffer separated with ","
 				for(uint8_t i = 0; i < MAX_PULSE_CONFIGS; i++) {
 					if(acqSettings.pulseOutput[i] == 0xFF) break;
 					usartAddToOutBuffer(intToString(acqSettings.pulseOutput[i]));
@@ -321,6 +347,7 @@ void processUsart() {
 			}
 			// pulse period
 			else if(cmpString(USART0.inBuffer+1, "PUP\0")) {
+				// add all pulse periods to outBuffer separated with ","
 				for(uint8_t i = 0; i < MAX_PULSE_CONFIGS; i++) {
 					if(acqSettings.pulsePeriod[i] == 0xFFFF) break;
 					usartAddToOutBuffer(intToString(acqSettings.pulsePeriod[i]));
@@ -343,13 +370,13 @@ void processUsart() {
 			else if(cmpString(USART0.inBuffer+1, "OTR\0")) {
 				usartAddToOutBuffer(intToString(overtriggerCount));
 			}
-			// Encoder info
+			// Encoder info "ERRORCOUNT,BACKCOUNT"
 			else if(cmpString(USART0.inBuffer+1, "ENC\0")) {
 				usartAddToOutBuffer(intToString(encoderErrorcount));
 				usartAddToOutBuffer(",");
 				usartAddToOutBuffer(intToString(encoderBackcount));
 			}
-			// DEBUG
+			// DEBUG info
 			else if(cmpString(USART0.inBuffer+1, "DBG\0")) {	
 				usartAddToOutBuffer(intToString(pulseTrainComplete));
 				usartAddToOutBuffer(",");
@@ -360,10 +387,13 @@ void processUsart() {
 			// for controller identification and communication test
 			else if(cmpString(USART0.inBuffer+1, "ID\0")) {
 				usartAddToOutBuffer("CONTROLLER");
-			}else usartAddToOutBuffer("UNRECOGNIZED");
+			}
+			// parameter not recognized
+			else usartAddToOutBuffer("UNRECOGNIZED");
 			usartAddToOutBuffer("\n\0");
 			usartSend();
 		break;
+		// first character unrecognized
 		default:
 			usartAddToOutBuffer("UNRECOGNIZED\n\0");
 			usartSend();
@@ -396,7 +426,7 @@ int main(void) {
 	PCMSK2 |= (1<<PCINT20);	// enable PCINT20 - Encoder B signal
 	
 	// line in 2 (first exposure indicator)
-	DDRC |= (1<<5);
+	DDRC |= (1<<5);	// output
 	
 	loadSettings();
 	usartInit();

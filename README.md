@@ -1,1 +1,0 @@
-# HDR_line_camera

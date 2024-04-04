@@ -76,7 +76,7 @@
 <layer number="201" name="tNamesOnPCB" color="5" fill="1" visible="yes" active="yes"/>
 <layer number="202" name="bNamesOnPCB" color="3" fill="1" visible="yes" active="yes"/>
 </layers>
-<schematic xreflabel="%F%N" xrefpart="/%S.%C%R">
+<schematic xreflabel="%F%N" xrefpart="/">
 <libraries>
 <library name="custom ICs">
 <packages>
@@ -21502,6 +21502,8 @@ DIN A4, landscape with location and doc. field</description>
 <part name="FRAME1" library="frames" library_urn="urn:adsk.eagle:library:229" deviceset="A4L-LOC" device=""/>
 <part name="FRAME2" library="frames" library_urn="urn:adsk.eagle:library:229" deviceset="A4L-LOC" device=""/>
 <part name="FRAME3" library="frames" library_urn="urn:adsk.eagle:library:229" deviceset="A4L-LOC" device=""/>
+<part name="R6" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="R0805" package3d_urn="urn:adsk.eagle:package:23553/2" value="10K"/>
+<part name="GND25" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -22198,6 +22200,13 @@ DIN A4, landscape with location and doc. field</description>
 <attribute name="NAME" x="178.8414" y="49.53" size="1.778" layer="95" rot="R90"/>
 <attribute name="VALUE" x="183.642" y="49.53" size="1.778" layer="96" rot="R90"/>
 </instance>
+<instance part="R6" gate="G$1" x="76.2" y="60.96" smashed="yes" rot="R90">
+<attribute name="NAME" x="74.7014" y="57.15" size="1.778" layer="95" rot="R90"/>
+<attribute name="VALUE" x="79.502" y="57.15" size="1.778" layer="96" rot="R90"/>
+</instance>
+<instance part="GND25" gate="1" x="76.2" y="48.26" smashed="yes">
+<attribute name="VALUE" x="73.66" y="45.72" size="1.778" layer="96"/>
+</instance>
 </instances>
 <busses>
 </busses>
@@ -22222,6 +22231,11 @@ DIN A4, landscape with location and doc. field</description>
 <pinref part="IC4" gate="G$1" pin="R-"/>
 <pinref part="GND21" gate="1" pin="GND"/>
 <wire x1="104.14" y1="50.8" x2="101.6" y2="50.8" width="0.1524" layer="91"/>
+</segment>
+<segment>
+<pinref part="GND25" gate="1" pin="GND"/>
+<pinref part="R6" gate="G$1" pin="1"/>
+<wire x1="76.2" y1="50.8" x2="76.2" y2="55.88" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="+5V" class="0">
@@ -22466,8 +22480,12 @@ DIN A4, landscape with location and doc. field</description>
 <net name="LINE_IN_3" class="0">
 <segment>
 <pinref part="IC4" gate="G$1" pin="DI"/>
-<wire x1="78.74" y1="68.58" x2="73.66" y2="68.58" width="0.1524" layer="91"/>
+<wire x1="78.74" y1="68.58" x2="76.2" y2="68.58" width="0.1524" layer="91"/>
 <label x="73.66" y="68.58" size="1.778" layer="95" rot="R180" xref="yes"/>
+<pinref part="R6" gate="G$1" pin="2"/>
+<wire x1="76.2" y1="68.58" x2="73.66" y2="68.58" width="0.1524" layer="91"/>
+<wire x1="76.2" y1="66.04" x2="76.2" y2="68.58" width="0.1524" layer="91"/>
+<junction x="76.2" y="68.58"/>
 </segment>
 </net>
 </nets>

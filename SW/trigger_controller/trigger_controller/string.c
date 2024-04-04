@@ -16,10 +16,10 @@ uint8_t stringEmpty(volatile const char *str) {
 
 uint8_t cmpString(volatile const char *str1, const char *str2) {
 	for(uint8_t i = 0; i < 0xFF; i++) {
-		if(str1[i] == '\0' || str2[i] == '\0') break;	//end of either string with no previous mismatches counts as a match
-		if(str1[i] != str2[i]) return 0;	//mismatch
+		if(str1[i] == '\0' || str2[i] == '\0') break;	// end of either string with no previous mismatches counts as a match
+		if(str1[i] != str2[i]) return 0;	// mismatch
 	}
-	return 1;	//match
+	return 1;	// match
 }
 
 char *intToString(int32_t integer) {
@@ -71,19 +71,22 @@ uint16_t *stringToInts(volatile const char *str, char splitMarker) {
 	static uint16_t returnArray[MAX_NUM_OF_INTS+1];
 	uint8_t returnArrayIndex = 0;
 	
-	#define MAX_INT_LENGTH 5				//max uint16_t length is 5 digits
+	#define MAX_INT_LENGTH 5				// max uint16_t length is 5 digits
 	static char stringPart[MAX_INT_LENGTH+1];
 	uint8_t stringPartIndex = 0;
 	
+	// for all string characters
 	for(uint8_t i = 0; i < 0xFF; i++) {
+		// find the next string part (copy into stringPart until splitMarker is found)
 		stringPart[stringPartIndex] = str[i];
 		
 		if(str[i] == splitMarker || str[i] == '\0') {
-			stringPart[stringPartIndex] = '\0';	//overwrite split marker with termination
+			stringPart[stringPartIndex] = '\0';	// overwrite split marker with termination
+			// convert the string part to int and continue to next part or stop
 			returnArray[returnArrayIndex] = stringToInt(stringPart);
 			stringPartIndex = 0;
 			returnArrayIndex++;
-			if(str[i] == '\0') break;	//converted all strings
+			if(str[i] == '\0') break;	// converted all strings
 			if(returnArrayIndex >= MAX_NUM_OF_INTS) break;
 		}
 		else {

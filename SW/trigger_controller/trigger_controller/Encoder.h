@@ -12,6 +12,7 @@ typedef enum encoderChange {
 
 extern volatile uint32_t encoderBackcount;
 extern volatile uint32_t encoderErrorcount;
+// call with one of the encoderChange events to handle the encoder state machine
 void encoderStateMachine(uint8_t change);
 
 #endif
